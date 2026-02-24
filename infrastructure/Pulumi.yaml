@@ -1,0 +1,3 @@
+name: hcloud-security-cluster
+runtime: nodejs
+description: Talos Kubernetes cluster on Hetzner Cloud (Pulumi TypeScript port of terraform-hcloud-talos)

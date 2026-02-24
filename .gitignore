@@ -1,0 +1,9 @@
+# Files
+*.key
+*.pem
+
+# Directories
+node_modules
+
+# System Files
+.DS_Store

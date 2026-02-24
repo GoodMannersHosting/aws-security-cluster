@@ -1,0 +1,24 @@
+{
+  "name": "hcloud-talos-cluster",
+  "version": "0.1.0",
+  "description": "Pulumi TypeScript stack for Talos Kubernetes cluster on Hetzner Cloud",
+  "packageManager": "yarn@1.22.0",
+  "main": "index.ts",
+  "scripts": {
+    "build": "tsc",
+    "preview": "pulumi preview",
+    "up": "pulumi up",
+    "destroy": "pulumi destroy"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@pulumi/hcloud": "^1.22.0",
+    "@pulumi/kubernetes": "^4.0.0",
+    "@pulumi/pulumi": "^3.0.0",
+    "@pulumi/tls": "^5.0.0",
+    "@pulumiverse/talos": "^0.7.0"
+  }
+}

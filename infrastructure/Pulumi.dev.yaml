@@ -1,0 +1,11 @@
+config:
+  hcloud-security-cluster:hcloudToken:
+    secure: REPLACE_WITH_PULUMI_SECRET_OR_USE_HCLOUD_TOKEN_ENV
+  hcloud-security-cluster:clusterName: dummy.com
+  hcloud-security-cluster:locationName: fsn1
+  hcloud-security-cluster:talosVersion: "v1.12.2"
+  hcloud-security-cluster:kubernetesVersion: "1.35.0"
+  hcloud-security-cluster:controlPlaneNodes: |
+    [{"id":1,"type":"cax11"}]
+  hcloud-security-cluster:workerNodes: "[]"
+  hcloud-security-cluster:firewallUseCurrentIp: true
