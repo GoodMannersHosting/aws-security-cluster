@@ -6,12 +6,26 @@ import type { ControlPlaneSpec, WorkerSpec } from "./network";
 import type { NetworkOutputs } from "./network";
 import {
   buildControlPlanePatch,
-  buildTailscalePatch,
   buildWorkerPatch,
   type PatchRuntime,
 } from "./talosPatches";
 
 const API_PORT_K8S = 6443;
+
+function resolveClusterEndpointHost(
+  config: ClusterConfig,
+  net: NetworkOutputs,
+): pulumi.Output<string> {
+  const defaultPrivate = `kube.${config.clusterDomain}`;
+  if (config.clusterApiHostPrivate?.trim()) {
+    return pulumi.output(config.clusterApiHostPrivate.trim());
+  }
+  if (config.enableAliasIp) return pulumi.output(defaultPrivate);
+  if (config.clusterApiHost?.trim())
+    return pulumi.output(config.clusterApiHost.trim());
+  if (net.floatingIp) return net.floatingIp.ipAddress;
+  return net.controlPlanePublicIpv4List[0];
+}
 
 export interface TalosOutputs {
   secrets: talos.machine.Secrets;
@@ -25,35 +39,34 @@ export function createTalosConfigs(
   config: ClusterConfig,
   net: NetworkOutputs,
   controlPlaneSpecs: ControlPlaneSpec[],
-  workerSpecs: WorkerSpec[]
+  workerSpecs: WorkerSpec[],
 ): TalosOutputs {
   const defaultClusterApiHostPrivate = `kube.${config.clusterDomain}`;
   const clusterApiHostPrivateInternal =
     config.clusterApiHostPrivate?.trim() ?? defaultClusterApiHostPrivate;
 
-  const clusterEndpointHost: pulumi.Output<string> = config.clusterApiHostPrivate
-    ? pulumi.output(config.clusterApiHostPrivate.trim())
-    : config.enableAliasIp
-      ? pulumi.output(clusterApiHostPrivateInternal)
-      : config.clusterApiHost
-        ? pulumi.output(config.clusterApiHost.trim())
-        : net.floatingIp
-          ? net.floatingIp.ipAddress
-          : net.controlPlanePublicIpv4List[0];
+  const clusterEndpointHost = resolveClusterEndpointHost(config, net);
   const clusterEndpointUrlInternal = clusterEndpointHost.apply(
-    (h) => `https://${h}:${API_PORT_K8S}`
+    (h) => `https://${h}:${API_PORT_K8S}`,
   );
-  const clusterEndpointInternalStr = config.clusterApiHostPrivate?.trim() ?? clusterApiHostPrivateInternal;
+  const clusterEndpointInternalStr =
+    config.clusterApiHostPrivate?.trim() ?? clusterApiHostPrivateInternal;
 
-  const certSANs = pulumi.all([
+  const certSANsInputs: pulumi.Input<string | null>[] = [
     ...net.controlPlanePublicIpv4List,
     ...net.controlPlanePrivateIpv4List,
     clusterEndpointHost,
     config.enableAliasIp ? net.controlPlanePrivateVipIpv4 : null,
     net.floatingIp ? net.floatingIp.ipAddress : null,
-  ]).apply((all) =>
-    [...new Set(all.filter((x): x is string => x != null && x !== ""))]
-  );
+  ];
+  if (config.enableIpv6 && net.controlPlanePublicIpv6List.length > 0) {
+    certSANsInputs.push(...net.controlPlanePublicIpv6List);
+  }
+  const certSANs = pulumi
+    .all(certSANsInputs)
+    .apply((all) => [
+      ...new Set(all.filter((x): x is string => x != null && x !== "")),
+    ]);
 
   const extraHostEntries = config.enableAliasIp
     ? [
@@ -89,8 +102,6 @@ export function createTalosConfigs(
       return r;
     });
 
-  const tailscalePatch = buildTailscalePatch(config);
-
   const secrets = new talos.machine.Secrets("talos-secrets", {
     talosVersion: config.talosVersion,
   });
@@ -99,9 +110,12 @@ export function createTalosConfigs(
   for (let i = 0; i < controlPlaneSpecs.length; i++) {
     const spec = controlPlaneSpecs[i]!;
     const configPatches = [
-      runtimeOutput.apply((r) => JSON.stringify(buildControlPlanePatch(config, r, spec.labels, spec.taints))),
+      runtimeOutput.apply((r) =>
+        JSON.stringify(
+          buildControlPlanePatch(config, r, spec.labels, spec.taints),
+        ),
+      ),
       ...config.talosControlPlaneExtraConfigPatches,
-      ...(tailscalePatch ? [tailscalePatch] : []),
     ];
     const result = talos.machine.getConfigurationOutput({
       clusterName: config.clusterName,
@@ -121,7 +135,9 @@ export function createTalosConfigs(
   for (let i = 0; i < workerSpecs.length; i++) {
     const spec = workerSpecs[i]!;
     const configPatches = [
-      runtimeOutput.apply((r) => JSON.stringify(buildWorkerPatch(config, r, spec.labels, spec.taints))),
+      runtimeOutput.apply((r) =>
+        JSON.stringify(buildWorkerPatch(config, r, spec.labels, spec.taints)),
+      ),
       ...config.talosWorkerExtraConfigPatches,
     ];
     const result = talos.machine.getConfigurationOutput({

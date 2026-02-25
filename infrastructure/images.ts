@@ -9,7 +9,9 @@ export interface ResolvedImages {
   x86IsoId: string | undefined;
 }
 
-export async function resolveTalosImages(config: ClusterConfig): Promise<ResolvedImages> {
+export async function resolveTalosImages(
+  config: ClusterConfig,
+): Promise<ResolvedImages> {
   let armImageId: string | number | undefined = config.talosImageIdArm;
   let x86ImageId: string | number | undefined = config.talosImageIdX86;
   const armIsoId: string | undefined = config.talosIsoIdArm;
@@ -23,7 +25,7 @@ export async function resolveTalosImages(config: ClusterConfig): Promise<Resolve
         mostRecent: true,
       });
       armImageId = img.id;
-    } catch {
+    } catch (_err) {
       armImageId = undefined;
     }
   }
@@ -35,7 +37,7 @@ export async function resolveTalosImages(config: ClusterConfig): Promise<Resolve
         mostRecent: true,
       });
       x86ImageId = img.id;
-    } catch {
+    } catch (_err) {
       x86ImageId = undefined;
     }
   }

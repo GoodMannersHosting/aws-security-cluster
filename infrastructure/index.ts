@@ -20,7 +20,12 @@ const API_PORT_K8S = 6443;
 async function main() {
   const config = getConfig();
   const clusterPrefix = config.clusterPrefix ? `${config.clusterName}-` : "";
-  const locationName = config.locationName;
+  const controlPlaneLocations = config.controlPlaneNodes.map(
+    (n) => n.location ?? config.locationName,
+  );
+  const workerLocations = config.workerNodes.map(
+    (n) => n.location ?? config.locationName,
+  );
 
   const currentIpv4 =
     config.firewallId == null && config.firewallUseCurrentIp
@@ -30,10 +35,15 @@ async function main() {
   const firewall = createFirewall(
     config,
     config.firewallUseCurrentIp && config.firewallId == null,
-    currentIpv4
+    currentIpv4,
   );
 
-  const net = createNetwork(config, locationName, clusterPrefix);
+  const net = createNetwork(
+    config,
+    clusterPrefix,
+    controlPlaneLocations,
+    workerLocations,
+  );
   const placement = createPlacementGroups(config, clusterPrefix);
   const sshKey = createSshKey(config, clusterPrefix);
 
@@ -42,26 +52,28 @@ async function main() {
     config,
     clusterPrefix,
     net.controlPlanePrivateIpv4List,
+    controlPlaneLocations,
     resolvedImages.armImageId,
     resolvedImages.x86ImageId,
     resolvedImages.armIsoId,
-    resolvedImages.x86IsoId
+    resolvedImages.x86IsoId,
   );
   const workerSpecs = buildWorkerSpecs(
     config,
     clusterPrefix,
     net.workerPrivateIpv4List,
+    workerLocations,
     resolvedImages.armImageId,
     resolvedImages.x86ImageId,
     resolvedImages.armIsoId,
-    resolvedImages.x86IsoId
+    resolvedImages.x86IsoId,
   );
 
   const talosOutputs = createTalosConfigs(
     config,
     net,
     controlPlaneSpecs,
-    workerSpecs
+    workerSpecs,
   );
 
   const servers = createServers(
@@ -73,56 +85,73 @@ async function main() {
     workerSpecs,
     talosOutputs.controlPlaneMachineConfigs,
     talosOutputs.workerMachineConfigs,
-    sshKey.id
+    sshKey.id,
   );
 
-  if (net.floatingIp && servers.controlPlaneServers.length > 0) {
-    const firstCp = servers.controlPlaneServers[0]!;
-    new hcloud.FloatingIpAssignment("floating-ip-assignment", {
-      floatingIpId: net.floatingIp.id.apply((id) => typeof id === "number" ? id : parseInt(id, 10)),
-      serverId: firstCp.id.apply((id) => typeof id === "number" ? id : parseInt(id, 10)),
-    }, { dependsOn: [firstCp] });
+  const firstControlPlaneServer = servers.controlPlaneServers[0];
+  if (net.floatingIp && firstControlPlaneServer) {
+    new hcloud.FloatingIpAssignment(
+      "floating-ip-assignment",
+      {
+        floatingIpId: net.floatingIp.id.apply((id) =>
+          typeof id === "number" ? id : parseInt(String(id), 10),
+        ),
+        serverId: firstControlPlaneServer.id.apply((id) =>
+          typeof id === "number" ? id : parseInt(String(id), 10),
+        ),
+      },
+      { dependsOn: [firstControlPlaneServer] },
+    );
   }
 
   const firstCpPublicIp = net.controlPlanePublicIpv4List[0];
-  const bootstrap = new talos.machine.Bootstrap("bootstrap", {
-    clientConfiguration: talosOutputs.secrets.clientConfiguration,
-    endpoint: firstCpPublicIp,
-    node: firstCpPublicIp,
-  }, { dependsOn: servers.controlPlaneServers });
+  const bootstrap = new talos.machine.Bootstrap(
+    "bootstrap",
+    {
+      clientConfiguration: talosOutputs.secrets.clientConfiguration,
+      endpoint: firstCpPublicIp,
+      node: firstCpPublicIp,
+    },
+    { dependsOn: servers.controlPlaneServers },
+  );
 
-  const kubeconfigResult = talos.cluster.getKubeconfigOutput({
-    clientConfiguration: talosOutputs.secrets.clientConfiguration,
-    node: firstCpPublicIp,
-  }, { dependsOn: [bootstrap] });
+  const kubeconfigResult = talos.cluster.getKubeconfigOutput(
+    {
+      clientConfiguration: talosOutputs.secrets.clientConfiguration,
+      node: firstCpPublicIp,
+    },
+    { dependsOn: [bootstrap] },
+  );
 
-  const kubeconfigHost = pulumi.all([
-    config.kubeconfigEndpointMode,
-    net.controlPlanePrivateVipIpv4,
-    net.controlPlanePublicIpv4List[0],
-    config.clusterApiHost,
-    config.clusterApiHostPrivate,
-  ]).apply(([mode, bestPrivate, bestPublic, apiHost, apiHostPrivate]) => {
-    if (mode === "private_ip") return bestPrivate;
-    if (mode === "public_ip") return bestPublic;
-    if (mode === "public_endpoint") return apiHost ?? bestPublic;
-    if (mode === "private_endpoint") return apiHostPrivate ?? bestPrivate;
-    return bestPublic;
-  });
+  const kubeconfigHost = pulumi
+    .all([
+      config.kubeconfigEndpointMode,
+      net.controlPlanePrivateVipIpv4,
+      net.controlPlanePublicIpv4List[0],
+      config.clusterApiHost,
+      config.clusterApiHostPrivate,
+    ])
+    .apply(([mode, bestPrivate, bestPublic, apiHost, apiHostPrivate]) => {
+      if (mode === "private_ip") return bestPrivate;
+      if (mode === "public_ip") return bestPublic;
+      if (mode === "public_endpoint") return apiHost ?? bestPublic;
+      if (mode === "private_endpoint") return apiHostPrivate ?? bestPrivate;
+      return bestPublic;
+    });
 
-  const kubeconfig = pulumi.all([kubeconfigResult, kubeconfigHost]).apply(
-    ([kc, host]) => {
+  const kubeconfig = pulumi
+    .all([kubeconfigResult, kubeconfigHost])
+    .apply(([kc, host]) => {
       const clusterEndpointUrlInternal = `https://${talosOutputs.clusterEndpointInternal}:${API_PORT_K8S}`;
       const replaceWith = `https://${host}:${API_PORT_K8S}`;
       return (kc.kubeconfigRaw ?? "").replace(
         clusterEndpointUrlInternal,
-        replaceWith
+        replaceWith,
       );
-    }
-  );
+    });
 
   const talosconfig = talosOutputs.talosClientConfigResult.apply(
-    (c) => c.talosConfig ?? ""
+    (c) => c.talosConfig ?? "",
   );
 
   return {
@@ -131,9 +160,9 @@ async function main() {
     publicIpv4List: pulumi.all(net.controlPlanePublicIpv4List),
     hetznerNetworkId: net.network.id,
     firewallId: firewall.firewallId,
-    talosWorkerIds: pulumi.output(servers.workerServers).apply((list) =>
-      Object.fromEntries(list.map((s, i) => [`${i}`, s.id]))
-    ),
+    talosWorkerIds: pulumi
+      .output(servers.workerServers)
+      .apply((list) => Object.fromEntries(list.map((s, i) => [`${i}`, s.id]))),
   };
 }
 

@@ -6,7 +6,10 @@ export interface PlacementOutputs {
   workerGroup: hcloud.PlacementGroup;
 }
 
-export function createPlacementGroups(config: ClusterConfig, clusterPrefix: string): PlacementOutputs {
+export function createPlacementGroups(
+  config: ClusterConfig,
+  clusterPrefix: string,
+): PlacementOutputs {
   const controlPlaneGroup = new hcloud.PlacementGroup("control-plane-pg", {
     name: `${clusterPrefix}control-plane`,
     type: "spread",

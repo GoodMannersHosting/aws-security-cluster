@@ -12,7 +12,69 @@ export interface ServerOutputs {
 }
 
 function idToNumber(id: pulumi.Input<string | number>): pulumi.Output<number> {
-  return pulumi.output(id).apply((v) => (typeof v === "number" ? v : parseInt(String(v), 10)));
+  return pulumi
+    .output(id)
+    .apply((v) => (typeof v === "number" ? v : parseInt(String(v), 10)));
+}
+
+type ServerSpec = ControlPlaneSpec | WorkerSpec;
+
+function createServer(
+  resourceName: string,
+  spec: ServerSpec,
+  userData: pulumi.Output<string>,
+  primaryIpv4: hcloud.PrimaryIp,
+  primaryIpv6: hcloud.PrimaryIp | undefined,
+  placementGroupId: pulumi.Output<number>,
+  role: "control-plane" | "worker",
+  config: ClusterConfig,
+  net: NetworkOutputs,
+  firewallIds: pulumi.Output<number[]>,
+  sshKeyId: pulumi.Output<string>,
+): hcloud.Server {
+  const publicNet: {
+    ipv4Enabled: boolean;
+    ipv4: pulumi.Output<number>;
+    ipv6Enabled?: boolean;
+    ipv6?: pulumi.Output<number>;
+  } = {
+    ipv4Enabled: true,
+    ipv4: idToNumber(primaryIpv4.id),
+  };
+  if (primaryIpv6) {
+    publicNet.ipv6 = idToNumber(primaryIpv6.id);
+  } else if (config.enableIpv6) {
+    publicNet.ipv6Enabled = true;
+  }
+  return new hcloud.Server(
+    resourceName,
+    {
+      name: spec.name,
+      location: spec.location,
+      image: spec.imageId as string,
+      iso: spec.isoId,
+      serverType: spec.serverType,
+      userData,
+      sshKeys: [sshKeyId],
+      placementGroupId,
+      firewallIds,
+      labels: {
+        cluster: config.clusterName,
+        role,
+        server_type: spec.serverType,
+        ...spec.labels,
+      },
+      publicNets: [publicNet],
+      networks: [
+        {
+          networkId: idToNumber(net.network.id),
+          ip: spec.ipv4Private,
+          aliasIps: [],
+        },
+      ],
+    },
+    { ignoreChanges: ["userData", "image", "iso"] },
+  );
 }
 
 export function createServers(
@@ -24,91 +86,45 @@ export function createServers(
   workerSpecs: WorkerSpec[],
   controlPlaneUserData: pulumi.Output<string>[],
   workerUserData: pulumi.Output<string>[],
-  sshKeyId: pulumi.Output<string>
+  sshKeyId: pulumi.Output<string>,
 ): ServerOutputs {
-  const firewallIds = firewall.firewallId.apply((id) => (id ? [parseInt(String(id), 10)] : []));
+  const firewallIds = firewall.firewallId.apply((id) =>
+    id ? [parseInt(String(id), 10)] : [],
+  );
+  const cpPlacementId = idToNumber(placement.controlPlaneGroup.id);
+  const workerPlacementId = idToNumber(placement.workerGroup.id);
 
-  const controlPlaneServers: hcloud.Server[] = [];
-  for (let i = 0; i < controlPlaneSpecs.length; i++) {
-    const spec = controlPlaneSpecs[i]!;
-    const userData = controlPlaneUserData[i]!;
-    const primaryIpv4 = net.primaryIpsCp[i]!;
-    const server = new hcloud.Server(`control-plane-${i + 1}`, {
-      name: spec.name,
-      location: net.locationName,
-      image: spec.imageId as string,
-      iso: spec.isoId,
-      serverType: spec.serverType,
-      userData,
-      sshKeys: [sshKeyId],
-      placementGroupId: idToNumber(placement.controlPlaneGroup.id),
+  const controlPlaneServers = controlPlaneSpecs.map((spec, i) =>
+    createServer(
+      `control-plane-${i + 1}`,
+      spec,
+      controlPlaneUserData[i]!,
+      net.primaryIpsCp[i]!,
+      net.primaryIpsCpV6[i],
+      cpPlacementId,
+      "control-plane",
+      config,
+      net,
       firewallIds,
-      labels: {
-        cluster: config.clusterName,
-        role: "control-plane",
-        server_type: spec.serverType,
-        ...spec.labels,
-      },
-      publicNets: [
-        {
-          ipv4Enabled: true,
-          ipv4: idToNumber(primaryIpv4.id),
-          ipv6Enabled: config.enableIpv6,
-        },
-      ],
-      networks: [
-        {
-          networkId: idToNumber(net.network.id),
-          ip: spec.ipv4Private,
-          aliasIps: [],
-        },
-      ],
-    }, {
-      ignoreChanges: ["userData", "image", "iso"],
-    });
-    controlPlaneServers.push(server);
-  }
+      sshKeyId,
+    ),
+  );
 
-  const workerServers: hcloud.Server[] = [];
-  for (let i = 0; i < workerSpecs.length; i++) {
-    const spec = workerSpecs[i]!;
-    const userData = workerUserData[i]!;
-    const primaryIpv4 = net.primaryIpsWorker[i]!;
-    const server = new hcloud.Server(`worker-${i + 1}`, {
-      name: spec.name,
-      location: net.locationName,
-      image: spec.imageId as string,
-      iso: spec.isoId,
-      serverType: spec.serverType,
-      userData,
-      sshKeys: [sshKeyId],
-      placementGroupId: idToNumber(placement.workerGroup.id),
+  const workerServers = workerSpecs.map((spec, i) =>
+    createServer(
+      `worker-${i + 1}`,
+      spec,
+      workerUserData[i]!,
+      net.primaryIpsWorker[i]!,
+      net.primaryIpsWorkerV6[i],
+      workerPlacementId,
+      "worker",
+      config,
+      net,
       firewallIds,
-      labels: {
-        cluster: config.clusterName,
-        role: "worker",
-        server_type: spec.serverType,
-        ...spec.labels,
-      },
-      publicNets: [
-        {
-          ipv4Enabled: true,
-          ipv4: idToNumber(primaryIpv4.id),
-          ipv6Enabled: config.enableIpv6,
-        },
-      ],
-      networks: [
-        {
-          networkId: idToNumber(net.network.id),
-          ip: spec.ipv4Private,
-          aliasIps: [],
-        },
-      ],
-    }, {
-      ignoreChanges: ["userData", "image", "iso"],
-    });
-    workerServers.push(server);
-  }
+      sshKeyId,
+    ),
+  );
 
   return { controlPlaneServers, workerServers };
 }

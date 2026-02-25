@@ -1,10 +1,11 @@
 /**
  * Build Talos machine config patches (control plane and worker).
- * Mirrors the Terraform locals controlplane_yaml and worker_yaml.
  */
 
 import type { ClusterConfig } from "./config";
-import { API_PORT_KUBE_PRISM } from "./locals";
+
+const TALOS_CCM_MANIFEST_URL =
+  "https://raw.githubusercontent.com/siderolabs/talos-cloud-controller-manager/v1.6.0/docs/deploy/cloud-controller-manager-daemonset.yml";
 
 export interface PatchRuntime {
   floatingIpAddress: string | null;
@@ -18,19 +19,30 @@ export interface PatchRuntime {
   workerCount: number;
 }
 
-function baseKubelet(config: ClusterConfig, taints: Array<{ key: string; value: string; effect: string }>) {
+function baseKubelet(
+  config: ClusterConfig,
+  taints: Array<{ key: string; value: string; effect: string }>,
+) {
   const extra: Record<string, unknown> = {
     "cloud-provider": "external",
     "rotate-server-certificates": true,
     ...config.kubeletExtraArgs,
   };
+  const validSubnets: string[] = [config.nodeIpv4Cidr];
+  if (config.enableIpv6 && config.podIpv6Cidr) {
+    validSubnets.push("::/0");
+  }
   const block: Record<string, unknown> = {
     extraArgs: extra,
-    nodeIP: { validSubnets: [config.nodeIpv4Cidr] },
+    nodeIP: { validSubnets },
   };
   if (taints.length > 0) {
     block.extraConfig = {
-      registerWithTaints: taints.map((t) => ({ key: t.key, value: t.value, effect: t.effect })),
+      registerWithTaints: taints.map((t) => ({
+        key: t.key,
+        value: t.value,
+        effect: t.effect,
+      })),
     };
   }
   return block;
@@ -59,15 +71,21 @@ export function buildControlPlanePatch(
   config: ClusterConfig,
   runtime: PatchRuntime,
   nodeLabels: Record<string, string>,
-  taints: Array<{ key: string; value: string; effect: string }>
+  taints: Array<{ key: string; value: string; effect: string }>,
 ): Record<string, unknown> {
   const machine: Record<string, unknown> = {
     install: { image: `ghcr.io/siderolabs/installer:${config.talosVersion}` },
     certSANs: runtime.certSANs,
     kubelet: baseKubelet(config, taints),
-    nodeLabels: config.workerNodes.length === 0
-      ? { ...nodeLabels, "node.kubernetes.io/exclude-from-external-load-balancers": { $patch: "delete" } }
-      : nodeLabels,
+    nodeLabels:
+      config.workerNodes.length === 0
+        ? {
+            ...nodeLabels,
+            "node.kubernetes.io/exclude-from-external-load-balancers": {
+              $patch: "delete",
+            },
+          }
+        : nodeLabels,
     network: {
       interfaces: [
         {
@@ -116,17 +134,29 @@ export function buildControlPlanePatch(
     registries: config.registries ?? undefined,
   };
 
+  const podSubnets =
+    config.enableIpv6 && config.podIpv6Cidr
+      ? [config.podIpv4Cidr, config.podIpv6Cidr]
+      : [config.podIpv4Cidr];
+  const serviceSubnets =
+    config.enableIpv6 && config.serviceIpv6Cidr
+      ? [config.serviceIpv4Cidr, config.serviceIpv6Cidr]
+      : [config.serviceIpv4Cidr];
   const cluster: Record<string, unknown> = {
-    allowSchedulingOnControlPlanes: config.controlPlaneAllowSchedule || runtime.workerCount === 0,
+    allowSchedulingOnControlPlanes:
+      config.controlPlaneAllowSchedule || runtime.workerCount === 0,
     network: {
       dnsDomain: config.clusterDomain,
-      podSubnets: [config.podIpv4Cidr],
-      serviceSubnets: [config.serviceIpv4Cidr],
+      podSubnets,
+      serviceSubnets,
       cni: { name: "none" },
     },
     coreDNS: { disabled: config.disableTalosCoredns },
     proxy: { disabled: true },
-    apiServer: { certSANs: runtime.certSANs, extraArgs: config.kubeApiExtraArgs },
+    apiServer: {
+      certSANs: runtime.certSANs,
+      extraArgs: config.kubeApiExtraArgs,
+    },
     controllerManager: {
       extraArgs: {
         "cloud-provider": "external",
@@ -157,9 +187,7 @@ data:
     ],
     externalCloudProvider: {
       enabled: true,
-      manifests: [
-        "https://raw.githubusercontent.com/siderolabs/talos-cloud-controller-manager/v1.6.0/docs/deploy/cloud-controller-manager-daemonset.yml",
-      ],
+      manifests: [TALOS_CCM_MANIFEST_URL],
     },
   };
 
@@ -170,7 +198,7 @@ export function buildWorkerPatch(
   config: ClusterConfig,
   runtime: PatchRuntime,
   nodeLabels: Record<string, string>,
-  taints: Array<{ key: string; value: string; effect: string }>
+  taints: Array<{ key: string; value: string; effect: string }>,
 ): Record<string, unknown> {
   const machine: Record<string, unknown> = {
     install: { image: `ghcr.io/siderolabs/installer:${config.talosVersion}` },
@@ -198,24 +226,22 @@ export function buildWorkerPatch(
     registries: config.registries ?? undefined,
   };
 
+  const podSubnetsWorker =
+    config.enableIpv6 && config.podIpv6Cidr
+      ? [config.podIpv4Cidr, config.podIpv6Cidr]
+      : [config.podIpv4Cidr];
+  const serviceSubnetsWorker =
+    config.enableIpv6 && config.serviceIpv6Cidr
+      ? [config.serviceIpv4Cidr, config.serviceIpv6Cidr]
+      : [config.serviceIpv4Cidr];
   const cluster: Record<string, unknown> = {
     network: {
       dnsDomain: config.clusterDomain,
-      podSubnets: [config.podIpv4Cidr],
-      serviceSubnets: [config.serviceIpv4Cidr],
+      podSubnets: podSubnetsWorker,
+      serviceSubnets: serviceSubnetsWorker,
       cni: { name: "none" },
     },
   };
 
   return { machine, cluster };
-}
-
-export function buildTailscalePatch(config: ClusterConfig): string | null {
-  if (!config.tailscale.enabled || !config.tailscale.authKey) return null;
-  return `apiVersion: v1alpha1
-kind: ExtensionServiceConfig
-name: tailscale
-environment:
-  - TS_AUTHKEY=${config.tailscale.authKey}
-`;
 }

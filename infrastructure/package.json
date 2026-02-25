@@ -19,6 +19,6 @@
     "@pulumi/kubernetes": "^4.0.0",
     "@pulumi/pulumi": "^3.0.0",
     "@pulumi/tls": "^5.0.0",
-    "@pulumiverse/talos": "^0.7.0"
+    "@pulumiverse/talos": "^0.7.1"
   }
 }
