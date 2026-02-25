@@ -214,9 +214,7 @@ function validateExtraFirewallRules(
 }
 
 export function getConfig(): ClusterConfig {
-  const controlPlaneNodes = parseJson<ClusterNode[]>("controlPlaneNodes", [
-    { id: 1, type: "cax11" },
-  ]);
+  const controlPlaneNodes = parseJson<ClusterNode[]>("controlPlaneNodes", []);
   const workerNodes = parseJson<ClusterNode[]>("workerNodes", []);
 
   if (controlPlaneNodes.length === 0) {

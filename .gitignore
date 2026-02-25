@@ -1,6 +1,8 @@
 # Files
 *.key
 *.pem
+*kubeconfig*
+*talosconfig*
 
 # Directories
 node_modules
