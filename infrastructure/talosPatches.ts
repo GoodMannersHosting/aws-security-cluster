@@ -94,7 +94,7 @@ export function buildControlPlanePatch(
           vip: runtime.floatingIpAddress
             ? {
                 ip: runtime.floatingIpAddress,
-                hcloud: { apiToken: config.hcloudToken },
+                hcloud: { apiToken: runtime.hcloudToken },
               }
             : null,
         },
@@ -104,7 +104,7 @@ export function buildControlPlanePatch(
           vip: config.enableAliasIp
             ? {
                 ip: runtime.privateVipAddress,
-                hcloud: { apiToken: config.hcloudToken },
+                hcloud: { apiToken: runtime.hcloudToken },
               }
             : null,
         },

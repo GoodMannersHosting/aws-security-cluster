@@ -25,5 +25,7 @@ config:
   hcloud-security-cluster:enableIpv6: "true"
   hcloud-security-cluster:networkIpv4Cidr: "10.99.0.0/16"
   hcloud-security-cluster:nodeIpv4Cidr: "10.99.1.0/24"
+  hcloud-security-cluster:serviceIpv4Cidr: "10.99.8.0/20"
+  hcloud-security-cluster:podIpv4Cidr: "10.99.16.0/20"
   hcloud-security-cluster:firewallUseCurrentIp: "true"
 encryptionsalt: v1:kDy+AkadoSk=:v1:1wx8z4Pgp9ErLmIr:qoNdZYCRpYla4ADazUiOGnVmcQvuRA==
