@@ -1,0 +1,6 @@
+secretsprovider: awskms://alias/pulumi-state?region=us-east-1
+encryptedkey: AQICAHj9/Os2L4O1FiUsUwz3Q3ThvEfB36WRDNDhSXnDZN//nQG3yp1yWucYswxADn/ygxm1AAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMR3uoFSq1jTujYKkPAgEQgDtvry6Sw9uRa561dxwgft7xInrSDbfspjLNi2EHs8kK9eHpzQZYW9EcT1HZKC63jKZ2QAZY7LkjgO5viA==
+config:
+  authentik-aws:domainName: auth.goodmannershosting.com
+  authentik-aws:route53ZoneId: Z0756029UTTLOXL00QF6
+  authentik-aws:dbVersion: "17.7"

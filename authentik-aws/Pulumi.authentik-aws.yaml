@@ -1,0 +1,13 @@
+config:
+  # Option A: existing ACM certificate ARN
+  # authentik-aws:certificateArn: arn:aws:acm:us-east-1:123456789012:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  # Option B: create ACM cert for this domain (set route53ZoneId for automatic DNS validation)
+  # authentik-aws:domainName: auth.example.com
+  # authentik-aws:route53ZoneId: Z0123456789ABCDEF
+  # Optional overrides:
+  # authentik-aws:dbVersion: "16.1.0"
+  # authentik-aws:auroraMinAcu: 0.5
+  # authentik-aws:auroraMaxAcu: 1
+  # authentik-aws:authentikVersion: "2026.2.0"
+  # authentik-aws:authentikServerDesiredCount: 2
+  # authentik-aws:authentikWorkerDesiredCount: 2
