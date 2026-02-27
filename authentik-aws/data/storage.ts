@@ -3,7 +3,7 @@
  */
 import * as aws from "@pulumi/aws";
 
-import { domainName, namePrefix } from "./config";
+import { domainName, namePrefix } from "../config";
 
 const storageBucket = new aws.s3.Bucket("AuthentikStorage", {
   tags: { Name: `${namePrefix}/AuthentikStorage` },

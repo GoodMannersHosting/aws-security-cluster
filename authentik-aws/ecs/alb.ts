@@ -3,10 +3,10 @@
  */
 import * as aws from "@pulumi/aws";
 
-import { namePrefix } from "./config";
-import { certificateArn } from "./cert";
-import { authentikSg } from "./security-groups";
-import { publicSubnet1, publicSubnet2, vpc } from "./vpc";
+import { namePrefix } from "../config";
+import { certificateArn } from "../config/cert";
+import { authentikSg } from "../networking/security-groups";
+import { publicSubnet1, publicSubnet2, vpc } from "../networking/vpc";
 
 const albSg = new aws.ec2.SecurityGroup("AuthentikALBSecurityGroup", {
   vpcId: vpc.id,

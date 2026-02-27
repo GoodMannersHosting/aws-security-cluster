@@ -3,10 +3,10 @@
  */
 import * as aws from "@pulumi/aws";
 
-import { auroraMaxAcu, auroraMinAcu, dbVersion } from "./config";
-import { databaseSg } from "./security-groups";
+import { auroraMaxAcu, auroraMinAcu, dbVersion } from "../config";
+import { databaseSg } from "../networking/security-groups";
 import { dbPassword } from "./secrets";
-import { privateSubnet1, privateSubnet2 } from "./vpc";
+import { privateSubnet1, privateSubnet2 } from "../networking/vpc";
 
 const dbSubnetGroup = new aws.rds.SubnetGroup("AuthentikDBSubnetGroup", {
   name: "authentik-db-subnet-group",

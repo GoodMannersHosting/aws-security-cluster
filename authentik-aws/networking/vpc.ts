@@ -3,7 +3,7 @@
  */
 import * as aws from "@pulumi/aws";
 
-import { namePrefix } from "./config";
+import { namePrefix } from "../config";
 
 const vpc = new aws.ec2.Vpc("AuthentikVpc", {
   cidrBlock: "172.16.0.0/16",

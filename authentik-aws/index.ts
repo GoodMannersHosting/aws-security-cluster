@@ -5,12 +5,12 @@
  * TLS: set certificateArn to use an existing ACM cert; otherwise a temporary
  * self-signed cert is generated and imported into ACM automatically.
  */
-import { alb } from "./alb";
-import { auroraCluster } from "./database";
-import { dbSecret } from "./secrets";
-import { storageBucket } from "./storage";
+import { alb } from "./ecs/alb";
+import { auroraCluster } from "./data/database";
+import { dbSecret } from "./data/secrets";
+import { storageBucket } from "./data/storage";
 
-import "./services";
+import "./ecs/services";
 
 export const loadBalancerDns = alb.dnsName;
 export const loadBalancerUrl = alb.dnsName.apply((d: string) => `https://${d}`);

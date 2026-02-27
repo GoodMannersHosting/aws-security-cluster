@@ -10,11 +10,11 @@ import {
   authentikServerMemory,
   authentikVersion,
   regionName,
-} from "./config";
-import { auroraCluster } from "./database";
-import { authentikSecretKeySecret, dbSecret } from "./secrets";
+} from "../config";
+import { auroraCluster } from "../data/database";
+import { authentikSecretKeySecret, dbSecret } from "../data/secrets";
 import { serverLogGroup } from "./logs";
-import { storageBucket } from "./storage";
+import { storageBucket } from "../data/storage";
 import { serverExecutionRole, serverTaskRole } from "./iam-server";
 
 const serverTaskDef = new aws.ecs.TaskDefinition("AuthentikServerTask", {

@@ -1,14 +1,14 @@
 /**
- * IAM roles and policies for the Authentik worker ECS task.
+ * IAM roles and policies for the Authentik server ECS task.
  */
 import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
 
-import { authentikSecretKeySecret, dbSecret } from "./secrets";
-import { workerLogGroup } from "./logs";
-import { storageBucket } from "./storage";
+import { authentikSecretKeySecret, dbSecret } from "../data/secrets";
+import { serverLogGroup } from "./logs";
+import { storageBucket } from "../data/storage";
 
-const workerExecutionRole = new aws.iam.Role("AuthentikWorkerExecutionRole", {
+const serverExecutionRole = new aws.iam.Role("AuthentikServerExecutionRole", {
   assumeRolePolicy: JSON.stringify({
     Version: "2012-10-17",
     Statement: [
@@ -20,16 +20,16 @@ const workerExecutionRole = new aws.iam.Role("AuthentikWorkerExecutionRole", {
     ],
   }),
 });
-new aws.iam.RolePolicyAttachment("AuthentikWorkerExecutionRolePolicy", {
-  role: workerExecutionRole.name,
+new aws.iam.RolePolicyAttachment("AuthentikServerExecutionRolePolicy", {
+  role: serverExecutionRole.name,
   policyArn: aws.iam.ManagedPolicy.AmazonECSTaskExecutionRolePolicy,
 });
-const workerExecutionPolicy = new aws.iam.RolePolicy(
-  "AuthentikWorkerExecutionPolicy",
+const serverExecutionPolicy = new aws.iam.RolePolicy(
+  "AuthentikServerExecutionPolicy",
   {
-    role: workerExecutionRole.id,
+    role: serverExecutionRole.id,
     policy: pulumi
-      .all([dbSecret.arn, authentikSecretKeySecret.arn, workerLogGroup.arn])
+      .all([dbSecret.arn, authentikSecretKeySecret.arn, serverLogGroup.arn])
       .apply(([dbArn, keyArn, logArn]: string[]) =>
         JSON.stringify({
           Version: "2012-10-17",
@@ -53,7 +53,7 @@ const workerExecutionPolicy = new aws.iam.RolePolicy(
   },
 );
 
-const workerTaskRole = new aws.iam.Role("AuthentikWorkerTaskRole", {
+const serverTaskRole = new aws.iam.Role("AuthentikServerTaskRole", {
   assumeRolePolicy: JSON.stringify({
     Version: "2012-10-17",
     Statement: [
@@ -65,8 +65,8 @@ const workerTaskRole = new aws.iam.Role("AuthentikWorkerTaskRole", {
     ],
   }),
 });
-new aws.iam.RolePolicy("AuthentikWorkerTaskRolePolicy", {
-  role: workerTaskRole.id,
+new aws.iam.RolePolicy("AuthentikServerTaskRolePolicy", {
+  role: serverTaskRole.id,
   policy: pulumi.all([storageBucket.arn]).apply(([bucketArn]: string[]) =>
     JSON.stringify({
       Version: "2012-10-17",
@@ -114,4 +114,4 @@ new aws.iam.RolePolicy("AuthentikWorkerTaskRolePolicy", {
   ),
 });
 
-export { workerExecutionRole, workerTaskRole };
+export { serverExecutionRole, serverTaskRole };

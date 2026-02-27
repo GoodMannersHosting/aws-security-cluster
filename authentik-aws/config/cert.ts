@@ -5,7 +5,7 @@ import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
 import * as tls from "@pulumi/tls";
 
-import { certificateArnConfig, domainName } from "./config";
+import { certificateArnConfig, domainName } from ".";
 
 let certificateArn: pulumi.Output<string>;
 if (certificateArnConfig) {

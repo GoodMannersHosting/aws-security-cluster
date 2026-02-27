@@ -8,13 +8,13 @@ import {
   authentikWorkerDesiredCount,
   enableSpot,
   spotServerOnDemandBase,
-} from "./config";
-import { ecsCluster } from "./ecs-cluster";
+} from "../config";
+import { ecsCluster } from "./cluster";
 import { serverTg, httpsListener } from "./alb";
 import { serverTaskDef } from "./server-task";
 import { workerTaskDef } from "./worker-task";
-import { authentikSg } from "./security-groups";
-import { privateSubnet1, privateSubnet2 } from "./vpc";
+import { authentikSg } from "../networking/security-groups";
+import { privateSubnet1, privateSubnet2 } from "../networking/vpc";
 
 const serverService = new aws.ecs.Service(
   "AuthentikServerService",
