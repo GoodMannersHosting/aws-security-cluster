@@ -1,0 +1,9 @@
+{
+  "name": "openbao-init-lambda",
+  "version": "1.0.0",
+  "description": "OpenBao init Lambda (Node 24, bundled SDK)",
+  "main": "index.js",
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.700.0"
+  }
+}

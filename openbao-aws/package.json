@@ -1,0 +1,23 @@
+{
+  "name": "openbao-aws",
+  "version": "0.1.0",
+  "description": "OpenBao on AWS with ECS Spot, RDS Serverless, KMS unseal (Pulumi)",
+  "main": "index.ts",
+  "scripts": {
+    "build": "tsc",
+    "build:lambda": "cd init/lambda-code && npm install",
+    "preview": "pulumi preview",
+    "up": "pulumi up",
+    "destroy": "pulumi destroy"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@pulumi/aws": "^7.0.0",
+    "@pulumi/pulumi": "^3.0.0",
+    "@pulumi/random": "^4.0.0",
+    "@pulumi/tls": "^5.3.0"
+  }
+}

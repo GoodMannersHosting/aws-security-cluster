@@ -1,0 +1,3 @@
+name: openbao-aws
+runtime: nodejs
+description: OpenBao on AWS with ECS Fargate Spot, Aurora Serverless v2, KMS auto-unseal, and ALB
