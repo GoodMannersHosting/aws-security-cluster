@@ -6,3 +6,4 @@ config:
   openbao-aws:vpcCidr: 10.99.0.0/16
   openbao-aws:openbaoVersion: 2.5.1
   openbao-aws:disableHealthChecks: "true"
+  openbao-aws:openbaoDomain: keeper.goodmanners.services

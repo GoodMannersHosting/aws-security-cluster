@@ -18,6 +18,7 @@ const tg80 = new aws.lb.TargetGroup("TraefikTG80", {
   protocol: "TCP",
   vpcId: vpc.id,
   targetType: "ip",
+  proxyProtocolV2: true,
   healthCheck: {
     protocol: "TCP",
     port: "80",
@@ -33,6 +34,7 @@ const tg443 = new aws.lb.TargetGroup("TraefikTG443", {
   protocol: "TCP",
   vpcId: vpc.id,
   targetType: "ip",
+  proxyProtocolV2: true,
   healthCheck: {
     protocol: "TCP",
     port: "443",

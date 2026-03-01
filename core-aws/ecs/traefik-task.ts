@@ -15,6 +15,7 @@ import {
   regionName,
   traefikCpu,
   traefikMemory,
+  vpcCidr,
 } from "../config";
 import { accessPoint, efs } from "../efs/traefik-data";
 import { ecsCluster } from "./cluster";
@@ -52,6 +53,9 @@ const traefikTaskDef = new aws.ecs.TaskDefinition("TraefikTask", {
         "--api.dashboard=true",
         "--entrypoints.web.address=:80",
         "--entrypoints.websecure.address=:443",
+        // Accept Proxy Protocol v2 from NLB (trust VPC CIDR where NLB nodes live)
+        `--entrypoints.web.proxyprotocol.trustedips=${vpcCidr}`,
+        `--entrypoints.websecure.proxyprotocol.trustedips=${vpcCidr}`,
         "--providers.ecs=true",
         `--providers.ecs.clusters=${clusterName}`,
         "--providers.ecs.exposedbydefault=false",
