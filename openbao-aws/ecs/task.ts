@@ -26,8 +26,24 @@ const taskDef = new aws.ecs.TaskDefinition("OpenBaoTask", {
   executionRoleArn: executionRole.arn,
   taskRoleArn: taskRole.arn,
   containerDefinitions: pulumi
-    .all([dbSecret.arn, logGroup.name, regionName, kmsKey.keyId])
-    .apply(([secretArn, logGroupName, reg, keyId]) => {
+    .all([dbSecret.arn, logGroup.name, regionName, kmsKey.keyId, kmsKey.arn, taskRole.arn])
+    .apply(([secretArn, logGroupName, reg, keyId, keyArn, taskRoleArn]) => {
+      // #region agent log
+      if (!pulumi.runtime.isDryRun() && keyId && keyArn && taskRoleArn) {
+        fetch("http://127.0.0.1:7928/ingest/a7c1ba33-c21a-4c15-88bd-6d194c7dc362", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "b48217" },
+          body: JSON.stringify({
+            sessionId: "b48217",
+            location: "openbao-aws/ecs/task.ts:deploy",
+            message: "KMS values passed to OpenBao task",
+            data: { keyId, keyArn, region: reg, taskRoleArn },
+            hypothesisId: "H1,H3,H4,H5",
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+      }
+      // #endregion
       const openbaoConfig = `listener "tcp" {
   address     = "0.0.0.0:8200"
   tls_disable = true
@@ -47,7 +63,7 @@ api_addr     = "http://127.0.0.1:8200"
           image: `${openbaoImage}:${openbaoVersion}`,
           entrypoint: ["/bin/sh", "-c"],
           command: [
-            "printf '%s' \"$BAO_LOCAL_CONFIG\" > /openbao/config/local.hcl && chown openbao:openbao /openbao/config/local.hcl && exec su-exec openbao bao server -config=/openbao/config",
+            "printf '%s' \"$BAO_LOCAL_CONFIG\" > /openbao/config/local.hcl && chown openbao:openbao /openbao/config/local.hcl && (echo '[DEBUG] Seal config:'; grep -E 'region|kms_key_id' /openbao/config/local.hcl || true) && exec su-exec openbao bao server -config=/openbao/config",
           ],
           essential: true,
           portMappings: [{ containerPort: 8200, protocol: "tcp" }],

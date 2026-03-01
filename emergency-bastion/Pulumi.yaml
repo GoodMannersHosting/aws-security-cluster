@@ -1,0 +1,5 @@
+name: emergency-bastion
+runtime: nodejs
+description: Emergency bastion host for SSH access to RDS (e.g. OpenBao Aurora) in the same VPC.
+backend:
+  url: s3://pulumi-state-2e089842
