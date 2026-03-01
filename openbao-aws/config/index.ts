@@ -17,9 +17,13 @@ export const auroraMinAcu = config.getNumber("auroraMinAcu") ?? 0.5;
 export const auroraMaxAcu = config.getNumber("auroraMaxAcu") ?? 2;
 export const enableSpot = config.getBoolean("enableSpot") ?? true;
 export const spotOnDemandBase = config.getNumber("spotOnDemandBase") ?? 1;
+/** Domain for OpenBao (e.g. openbao.example.com). Point DNS to core stack NLB. */
+export const openbaoDomain = config.require("openbaoDomain");
 export const certificateArnConfig = config.get("certificateArn");
 export const domainName = config.get("domainName");
-/** When true, disables ECS container and ALB health checks so you can exec in and run bootstrap manually. */
+/** Optional: restore Aurora from this snapshot ARN instead of creating new (disaster recovery). */
+export const auroraSnapshotIdentifier = config.get("auroraSnapshotIdentifier");
+/** When true, disables ECS container health checks so you can exec in and run bootstrap manually. */
 export const disableHealthChecks = config.getBoolean("disableHealthChecks") ?? false;
 export const allowedCidrs = config
   .get("allowedCidrs")

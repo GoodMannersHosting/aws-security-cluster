@@ -1,18 +1,13 @@
 /**
- * ECS service: OpenBao server.
+ * ECS service: OpenBao server (discovered by Traefik via labels).
  */
 import * as aws from "@pulumi/aws";
 
-import {
-  desiredCount,
-  enableSpot,
-  spotOnDemandBase,
-} from "../config";
+import { desiredCount, enableSpot, spotOnDemandBase } from "../config";
+import { privateSubnetIds } from "../core";
 import { ecsCluster } from "./cluster";
-import { tg, httpsListener } from "./alb";
-import { taskDef } from "./task";
 import { openbaoSg } from "../networking/security-groups";
-import { privateSubnet1, privateSubnet2 } from "../networking/vpc";
+import { taskDef } from "./task";
 
 new aws.ecs.Service("OpenBaoService", {
   cluster: ecsCluster.arn,
@@ -28,12 +23,11 @@ new aws.ecs.Service("OpenBaoService", {
   forceNewDeployment: true,
   healthCheckGracePeriodSeconds: 120,
   networkConfiguration: {
-    subnets: [privateSubnet1.id, privateSubnet2.id],
+    subnets: privateSubnetIds,
     securityGroups: [openbaoSg.id],
     assignPublicIp: false,
   },
-  loadBalancers: [{ targetGroupArn: tg.arn, containerName: "openbao", containerPort: 8200 }],
   deploymentCircuitBreaker: { enable: false, rollback: false },
   deploymentMaximumPercent: 200,
   deploymentMinimumHealthyPercent: 50,
-}, { dependsOn: [httpsListener, taskDef] });
+}, { dependsOn: [taskDef] });

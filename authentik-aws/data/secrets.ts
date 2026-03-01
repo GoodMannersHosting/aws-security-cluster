@@ -5,19 +5,20 @@ import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
 import * as random from "@pulumi/random";
 
+import { auroraSnapshotIdentifier } from "../config";
+
 const dbPassword = new random.RandomPassword("DBPassword", {
   length: 64,
   overrideSpecial: "!#$%&*()_+-=[]{}|;:,.<>?",
   special: true,
 });
 const dbSecret = new aws.secretsmanager.Secret("DBPassword", {});
-const dbSecretVersion = new aws.secretsmanager.SecretVersion(
-  "DBPasswordVersion",
-  {
+if (!auroraSnapshotIdentifier) {
+  new aws.secretsmanager.SecretVersion("DBPasswordVersion", {
     secretId: dbSecret.id,
     secretString: pulumi.interpolate`{"username":"authentik","password":"${dbPassword.result}"}`,
-  },
-);
+  });
+}
 
 const authentikSecretKey = new random.RandomPassword("AuthentikSecretKey", {
   length: 64,

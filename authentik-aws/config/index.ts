@@ -20,8 +20,12 @@ export const authentikWorkerMemory =
   config.getNumber("authentikWorkerMemory") ?? 1024;
 export const authentikWorkerDesiredCount =
   config.getNumber("authentikWorkerDesiredCount") ?? 2;
+/** Domain for Authentik (e.g. auth.example.com). Point DNS to core stack NLB. */
+export const authentikDomain = config.require("authentikDomain");
 export const certificateArnConfig = config.get("certificateArn");
 export const domainName = config.get("domainName");
+/** Optional: restore Aurora from this snapshot ARN instead of creating new (disaster recovery). */
+export const auroraSnapshotIdentifier = config.get("auroraSnapshotIdentifier");
 export const auroraMinAcu = config.getNumber("auroraMinAcu") ?? 0.5;
 export const auroraMaxAcu = config.getNumber("auroraMaxAcu") ?? 1;
 export const enableSpot = config.getBoolean("enableSpot") ?? true;

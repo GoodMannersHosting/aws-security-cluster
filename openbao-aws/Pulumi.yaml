@@ -1,3 +1,5 @@
 name: openbao-aws
 runtime: nodejs
-description: OpenBao on AWS with ECS Fargate Spot, Aurora Serverless v2, KMS auto-unseal, and ALB
+description: OpenBao on AWS - ECS in core cluster, behind Traefik (StackReference to core-aws)
+backend:
+  url: s3://pulumi-state-2e089842

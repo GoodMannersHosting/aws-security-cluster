@@ -1,18 +1,19 @@
 /**
  * One-time OpenBao init: Lambda runs on a schedule, checks if uninitialized, calls init API, stores root token.
+ * Calls OpenBao via NLB (Traefik routes by Host to OpenBao).
  */
 import * as path from "path";
 import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
 
-import { namePrefix } from "../config";
-import { alb } from "../ecs/alb";
-import { privateSubnet1, privateSubnet2, vpc } from "../networking/vpc";
+import { namePrefix, openbaoDomain } from "../config";
+import { privateSubnetIds } from "../core";
+import { vpcId } from "../core";
 
 const stackName = pulumi.getStack();
 
 const lambdaSg = new aws.ec2.SecurityGroup("OpenBaoInitLambdaSG", {
-  vpcId: vpc.id,
+  vpcId: vpcId,
   description: "OpenBao init Lambda",
   egress: [{ protocol: "-1", cidrBlocks: ["0.0.0.0/0"], fromPort: 0, toPort: 0 }],
 });
@@ -59,12 +60,12 @@ const lambda = new aws.lambda.Function("OpenBaoInitLambda", {
   code: new pulumi.asset.FileArchive(path.join(__dirname, "lambda-code")),
   environment: {
     variables: {
-      OPENBAO_URL: pulumi.interpolate`https://${alb.dnsName}`,
+      OPENBAO_URL: pulumi.interpolate`https://${openbaoDomain}`,
       ROOT_TOKEN_SECRET_ARN: rootTokenSecret.arn,
     },
   },
   vpcConfig: {
-    subnetIds: [privateSubnet1.id, privateSubnet2.id],
+    subnetIds: privateSubnetIds,
     securityGroupIds: [lambdaSg.id],
   },
   tags: { Name: `${namePrefix}/InitLambda` },

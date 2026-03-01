@@ -4,3 +4,4 @@ config:
   authentik-aws:domainName: auth.goodmannershosting.com
   authentik-aws:route53ZoneId: Z0756029UTTLOXL00QF6
   authentik-aws:dbVersion: "17.7"
+  authentik-aws:authentikDomain: auth.goodmanners.services

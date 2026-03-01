@@ -1,18 +1,6 @@
 /**
- * ECS cluster and Fargate capacity providers.
+ * ECS cluster from core-aws (re-export for compatibility).
  */
-import * as aws from "@pulumi/aws";
+import { clusterArn } from "../core";
 
-import { namePrefix } from "../config";
-
-const ecsCluster = new aws.ecs.Cluster("OpenBaoCluster", {
-  name: "openbao-cluster",
-  tags: { Name: `${namePrefix}/Cluster` },
-});
-
-new aws.ecs.ClusterCapacityProviders("OpenBaoCapacityProviders", {
-  clusterName: ecsCluster.name,
-  capacityProviders: ["FARGATE", "FARGATE_SPOT"],
-});
-
-export { ecsCluster };
+export const ecsCluster = { arn: clusterArn };

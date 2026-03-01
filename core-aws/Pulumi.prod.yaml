@@ -1,0 +1,7 @@
+encryptionsalt: v1:JjhdRPem0Z8=:v1:A8gIGjksfWKOw9Yw:Xf24MDQzthSKc6WD6uC/kcAE9XNddA==
+config:
+  core-aws:hostedZoneId: Z0240864RSVFQTJ5V38O
+  core-aws:acmeEmail: daniel.a.manners@gmail.com
+  core-aws:domain: goodmanners.services
+  core-aws:vpcCidr: 172.16.0.0/20
+  core-aws:enableSpot: "true"

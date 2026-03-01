@@ -1,0 +1,5 @@
+name: core-aws
+runtime: nodejs
+description: Core AWS infrastructure - VPC, ECS cluster, Traefik (ACME/Route53), NLB
+backend:
+  url: s3://pulumi-state-2e089842

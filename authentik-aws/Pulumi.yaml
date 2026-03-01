@@ -1,3 +1,5 @@
 name: authentik-aws
 runtime: nodejs
-description: Authentik on AWS with Aurora Serverless v2, ECS Fargate, and ALB
+description: Authentik on AWS - ECS in core cluster, behind Traefik (StackReference to core-aws)
+backend:
+  url: s3://pulumi-state-2e089842

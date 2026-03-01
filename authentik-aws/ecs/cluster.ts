@@ -1,13 +1,6 @@
 /**
- * ECS cluster and Fargate capacity providers.
+ * ECS cluster from core-aws (re-export for compatibility).
  */
-import * as aws from "@pulumi/aws";
+import { clusterArn } from "../core";
 
-const ecsCluster = new aws.ecs.Cluster("AuthentikCluster", {});
-
-new aws.ecs.ClusterCapacityProviders("AuthentikClusterCapacityProviders", {
-  clusterName: ecsCluster.name,
-  capacityProviders: ["FARGATE", "FARGATE_SPOT"],
-});
-
-export { ecsCluster };
+export const ecsCluster = { arn: clusterArn };

@@ -430,7 +430,7 @@
   dependencies:
     "@pulumi/pulumi" "^3.142.0"
 
-"@pulumiverse/talos@^0.7.0":
+"@pulumiverse/talos@^0.7.1":
   version "0.7.1"
   resolved "https://registry.yarnpkg.com/@pulumiverse/talos/-/talos-0.7.1.tgz#21037fcf876e1634bba7d660f9131db4142efc71"
   integrity sha512-bofeJ0x/NB2lEaehrcOORuxd3BOhqY0/+DsPE2AOMYvtpW2is22NBPb8jrttWX7Z733NmI1b3CuVdHQCdeTp+g==

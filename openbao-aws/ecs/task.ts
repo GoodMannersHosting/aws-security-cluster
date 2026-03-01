@@ -6,6 +6,7 @@ import * as pulumi from "@pulumi/pulumi";
 
 import {
   disableHealthChecks,
+  openbaoDomain,
   openbaoImage,
   openbaoCpu,
   openbaoMemory,
@@ -55,6 +56,13 @@ api_addr     = "http://127.0.0.1:8200"
             { name: "AWS_REGION", value: reg },
           ],
           secrets: [{ name: "BAO_PG_CONNECTION_URL", valueFrom: secretArn }],
+          dockerLabels: {
+            "traefik.enable": "true",
+            "traefik.http.routers.openbao.rule": `Host(\`${openbaoDomain}\`)`,
+            "traefik.http.routers.openbao.tls": "true",
+            "traefik.http.routers.openbao.tls.certresolver": "le",
+            "traefik.http.services.openbao.loadbalancer.server.port": "8200",
+          },
           logConfiguration: {
             logDriver: "awslogs",
             options: {

@@ -5,6 +5,7 @@ import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
 
 import {
+  authentikDomain,
   authentikImage,
   authentikServerCpu,
   authentikServerMemory,
@@ -42,6 +43,13 @@ const serverTaskDef = new aws.ecs.TaskDefinition("AuthentikServerTask", {
           command: ["server"],
           essential: true,
           portMappings: [{ containerPort: 9000, protocol: "tcp" }],
+          dockerLabels: {
+            "traefik.enable": "true",
+            "traefik.http.routers.authentik.rule": `Host(\`${authentikDomain}\`)`,
+            "traefik.http.routers.authentik.tls": "true",
+            "traefik.http.routers.authentik.tls.certresolver": "le",
+            "traefik.http.services.authentik.loadbalancer.server.port": "9000",
+          },
           environment: [
             { name: "AUTHENTIK_POSTGRESQL__HOST", value: dbEndpoint },
             { name: "AUTHENTIK_POSTGRESQL__USER", value: "authentik" },
