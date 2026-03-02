@@ -4,7 +4,7 @@ Shared AWS infrastructure: VPC (172.16.0.0/20), ECS cluster, Traefik (ACME + Rou
 
 ## Prerequisites
 
-- Pulumi CLI, Node.js 18+, AWS CLI
+- Pulumi CLI, Node.js 20+, AWS CLI
 - Route53 hosted zone for your domain
 - Backend: `s3://pulumi-state-2e089842` (self-managed; StackReference org: **organization**)
 

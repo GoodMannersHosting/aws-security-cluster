@@ -12,35 +12,38 @@ Pulumi (TypeScript) stacks that provision shared AWS infrastructure and security
 ## Prerequisites
 
 - [Pulumi CLI](https://www.pulumi.com/docs/install/)
-- Node.js 18+
+- Node.js 20+
 - AWS CLI configured
 - Route53 hosted zone for your domain
 - Backend: `s3://pulumi-state-2e089842` (StackReference org: **organization**)
 
 ## Deploy order
 
-1. **core-aws** – VPC, ECS, Traefik, NLB  
-2. **openbao-aws** – OpenBao  
-3. **authentik-aws** – Authentik  
+1. **core-aws** – VPC, ECS, Traefik, NLB
+2. **openbao-aws** – OpenBao
+3. **authentik-aws** – Authentik
 4. **emergency-bastion** (optional)
 
 See [docs/INITIALIZATION.md](../docs/INITIALIZATION.md) for step-by-step config and deployment.
 
 ## Stack READMEs
 
-| Stack | Description |
-|-------|-------------|
-| [core-aws/README.md](../core-aws/README.md) | VPC, ECS cluster, Traefik (ACME/Route53), NLB |
-| [openbao-aws/README.md](../openbao-aws/README.md) | OpenBao on ECS with Aurora, KMS auto-unseal |
-| [emergency-bastion/README.md](../emergency-bastion/README.md) | Emergency bastion for RDS access |
+
+| Stack                                                         | Description                                   |
+| ------------------------------------------------------------- | --------------------------------------------- |
+| [core-aws/README.md](../core-aws/README.md)                   | VPC, ECS cluster, Traefik (ACME/Route53), NLB |
+| [openbao-aws/README.md](../openbao-aws/README.md)             | OpenBao on ECS with Aurora, KMS auto-unseal   |
+| [emergency-bastion/README.md](../emergency-bastion/README.md) | Emergency bastion for RDS access              |
+
 
 ## Commands
 
 ```bash
-cd <stack>   # core-aws, openbao-aws, authentik-aws, emergency-bastion
-npm install
-pulumi stack init prod   # or dev
-# Set required config (see stack README)
-pulumi preview
+cd <stack>                # core-aws, openbao-aws, authentik-aws, emergency-bastion
+pulumi install
+pulumi stack init prod    # or dev
+                          # Set required config, see stack README
+pulumi preview            # Confirm expected output
 pulumi up
 ```
+

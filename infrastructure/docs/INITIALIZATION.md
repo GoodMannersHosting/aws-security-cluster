@@ -5,7 +5,7 @@ This guide covers deploying and initializing the restructured AWS stacks: **core
 ## Prerequisites
 
 - [Pulumi CLI](https://www.pulumi.com/docs/install/) (v3.x)
-- Node.js 18+
+- Node.js 20+
 - AWS CLI configured (or `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`)
 - A **Route53 hosted zone** for your domain (for Traefik ACME DNS-01)
 - Pulumi backend: `s3://pulumi-state-2e089842` (self-managed; StackReference org must be `organization`)

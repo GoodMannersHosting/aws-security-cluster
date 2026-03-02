@@ -13,7 +13,7 @@ No ALB in this stack; TLS and routing are handled by Traefik in core-aws. Deploy
 ## Prerequisites
 
 - [Pulumi CLI](https://www.pulumi.com/docs/install/)
-- Node.js 18+
+- Node.js 20+
 - AWS CLI configured (or `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`)
 
 ## Config
