@@ -13,8 +13,8 @@ function request(method, path, body) {
         port: 443,
         path: u.pathname + u.search,
         method,
-        
         headers: body ? { "Content-Type": "application/json" } : {},
+        rejectUnauthorized: false, // Accept self-signed cert (Traefik default before ACME)
       },
       (res) => {
         let data = "";
