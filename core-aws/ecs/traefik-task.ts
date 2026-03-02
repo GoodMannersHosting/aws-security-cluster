@@ -22,7 +22,7 @@ import { ecsCluster } from "./cluster";
 import { executionRole, taskRole } from "./traefik-iam";
 import { logGroup } from "./logs";
 
-const traefikImage = "traefik:v3.6";
+const traefikImage = "public.ecr.aws/docker/library/traefik:v3.6";
 
 const traefikTaskDef = new aws.ecs.TaskDefinition("TraefikTask", {
   family: "core-traefik",

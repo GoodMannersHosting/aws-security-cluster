@@ -4,6 +4,7 @@ config:
   openbao-aws:domainName: keeper.goodmannershosting.com
   openbao-aws:auroraMaxAcu: "1"
   openbao-aws:vpcCidr: 10.99.0.0/16
-  openbao-aws:openbaoVersion: 2.5.1
+  openbao-aws:openbaoVersion: "2.5"
   openbao-aws:disableHealthChecks: "true"
   openbao-aws:openbaoDomain: keeper.goodmanners.services
+  openbao-aws:openbaoImage: docker.io/openbao/openbao

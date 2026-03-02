@@ -33,7 +33,19 @@ pulumi up
    psql "$CONNECTION_URL" -c "DROP TABLE IF EXISTS openbao_ha_locks; DROP TABLE IF EXISTS openbao_kv_store;"
    ```
 
-Then force a new OpenBao ECS deployment so it re-initializes; the init Lambda will store the new root token within ~5 minutes.
+6. **Force a new OpenBao ECS deployment** (from your laptop):
+   ```bash
+   CLUSTER=$(cd ../core-aws && pulumi --non-interactive stack output clusterName)
+   SERVICE=$(aws ecs list-services --cluster "$CLUSTER" --output text --query 'serviceArns' | tr '\t' '\n' | xargs -I{} basename {} | grep -i openbao)
+   aws ecs update-service --cluster "$CLUSTER" --service "$SERVICE" --force-new-deployment --query 'service.deployments[0].status' --output text
+   ```
+
+7. **Manually trigger the init Lambda** (optional; otherwise it runs every 5 min):
+   ```bash
+   LAMBDA=$(aws lambda list-functions --query "Functions[?contains(FunctionName,'OpenBaoInit')].FunctionName" --output text)
+   aws lambda invoke --function-name "$LAMBDA" /tmp/openbao-init.json && cat /tmp/openbao-init.json
+   ```
+   After the new OpenBao tasks are healthy, the Lambda will detect uninitialized state, call init, and store the root token in Secrets Manager.
 
 ## Destroy
 
