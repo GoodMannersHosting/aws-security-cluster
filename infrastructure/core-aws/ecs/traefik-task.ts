@@ -51,6 +51,7 @@ const traefikTaskDef = new aws.ecs.TaskDefinition("TraefikTask", {
       const dashboardDomain = dom ? `traefik.${dom}` : null;
       const traefikArgs = [
         "--api.dashboard=true",
+        "--api.insecure=true", // Expose API (and /ping) on :8080 for ECS container health check
         "--entrypoints.web.address=:80",
         "--entrypoints.websecure.address=:443",
         // Accept Proxy Protocol v2 from NLB (trust VPC CIDR where NLB nodes live)
@@ -125,7 +126,7 @@ const traefikTaskDef = new aws.ecs.TaskDefinition("TraefikTask", {
           interval: 30,
           timeout: 5,
           retries: 3,
-          startPeriod: 10,
+          startPeriod: 90, // EFS mount (up to 30s) + acme init + Traefik startup
         },
       };
       return JSON.stringify([container]);

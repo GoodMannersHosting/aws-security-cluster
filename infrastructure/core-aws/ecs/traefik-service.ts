@@ -30,6 +30,7 @@ const traefikService = new aws.ecs.Service("TraefikService", {
     { targetGroupArn: tg80.arn, containerName: "traefik", containerPort: 80 },
     { targetGroupArn: tg443.arn, containerName: "traefik", containerPort: 443 },
   ],
+  healthCheckGracePeriodSeconds: 120, // Traefik startup: EFS mount + acme init can take 30s+
   enableExecuteCommand: true,
   deploymentCircuitBreaker: { enable: false, rollback: false },
   deploymentMaximumPercent: 200,

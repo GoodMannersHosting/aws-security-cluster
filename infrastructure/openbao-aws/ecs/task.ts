@@ -44,18 +44,21 @@ const taskDef = new aws.ecs.TaskDefinition("OpenBaoTask", {
         }).catch(() => {});
       }
       // #endregion
+      // HA mode: multiple OpenBao tasks share PostgreSQL; one becomes active, others standby (see https://openbao.org/docs/concepts/ha/)
       const openbaoConfig = `listener "tcp" {
   address     = "0.0.0.0:8200"
   tls_disable = true
 }
-storage "postgresql" {}
+storage "postgresql" {
+  ha_enabled = "true"
+}
 seal "awskms" {
   region     = "${reg}"
   kms_key_id = "${keyId}"
 }
 disable_mlock = true
 ui           = true
-api_addr     = "http://127.0.0.1:8200"
+api_addr     = "https://${openbaoDomain}"
 `;
       return JSON.stringify([
         {
