@@ -1,5 +1,5 @@
 {
-  "user_claim": "sub",
+  "user_claim": "preferred_username",
   "groups_claim": "groups",
   "policies": "reader",
   "allowed_redirect_uris": [

@@ -1,7 +1,8 @@
-encryptionsalt: v1:JjhdRPem0Z8=:v1:A8gIGjksfWKOw9Yw:Xf24MDQzthSKc6WD6uC/kcAE9XNddA==
 config:
   core-aws:hostedZoneId: Z0240864RSVFQTJ5V38O
   core-aws:acmeEmail: daniel.a.manners@gmail.com
   core-aws:domain: goodmanners.services
   core-aws:vpcCidr: 172.16.0.0/20
   core-aws:enableSpot: "true"
+secretsprovider: awskms://alias/pulumi-state?region=us-east-1
+encryptedkey: AQICAHj9/Os2L4O1FiUsUwz3Q3ThvEfB36WRDNDhSXnDZN//nQFOhJ1wDUvgO42Y32sDICt2AAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQM6s2nPbGGWUaLLbtxAgEQgDtL/uPnFLQKLuYngGVn29NDphD4zSVBgRIyZX5th6/RZ1AOyNRfInIVmtjx2AxaGuiwrXLD2LEuIAIoow==
