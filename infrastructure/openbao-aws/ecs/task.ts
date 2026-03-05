@@ -68,7 +68,8 @@ api_addr     = "https://${openbaoDomain}"
             "traefik.http.routers.openbao.tls": "true",
             "traefik.http.routers.openbao.tls.certresolver": "le",
             "traefik.http.services.openbao.loadbalancer.server.port": "8200",
-            // Traefik health check: only 200 is healthy; standby returns 429 and is removed from rotation.
+            // Traefik health check: only 200 = healthy so only the active node stays in the pool (standby returns 429).
+            // Do not use standbyok: that would keep standbys in the pool and route user traffic to them → 429.
             "traefik.http.services.openbao.loadbalancer.healthcheck.path": "/v1/sys/health",
             "traefik.http.services.openbao.loadbalancer.healthcheck.interval": "15s",
             "traefik.http.services.openbao.loadbalancer.healthcheck.timeout": "5s",
@@ -88,10 +89,10 @@ api_addr     = "https://${openbaoDomain}"
                 "CMD-SHELL",
                 "wget -q -O- 'http://127.0.0.1:8200/v1/sys/health?standbyok=1' | grep -qE '\"sealed\"[[:space:]]*:[[:space:]]*false' || exit 1",
               ],
-              interval: 30,
+              interval: 15,
               timeout: 5,
               retries: 3,
-              startPeriod: 60,
+              startPeriod: 40,
             },
           }),
         },

@@ -21,7 +21,7 @@ new aws.ecs.Service("OpenBaoService", {
       ]
     : [{ capacityProvider: "FARGATE", weight: 1, base: 0 }],
   forceNewDeployment: true,
-  healthCheckGracePeriodSeconds: 120,
+  healthCheckGracePeriodSeconds: 30,
   networkConfiguration: {
     subnets: privateSubnetIds,
     securityGroups: [openbaoSg.id],
