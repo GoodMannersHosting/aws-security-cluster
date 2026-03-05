@@ -1,10 +1,10 @@
 secretsprovider: awskms://alias/pulumi-state?region=us-east-1
-encryptedkey: AQICAHj9/Os2L4O1FiUsUwz3Q3ThvEfB36WRDNDhSXnDZN//nQHpP0sVdK0SCebDt8J2YQitAAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMFoPW7yoeZK/lqKGzAgEQgDu8T75RxHlz0fqdQSnedYHjW3itQ9Ikx8Z/sYjngSm4IKaFQdOeJeYsCA29eYzqy0NcADgMpF6oepKfMg==
+encryptedkey: AQICAHj9/Os2L4O1FiUsUwz3Q3ThvEfB36WRDNDhSXnDZN//nQHJ15wX60wRNMcntTboKGEjAAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMzUvvlllIBr3MzzTTAgEQgDvHxnjJ82llXYJnOZLDNmiFXsOVYDvarv9u8dPWQse21hfWbqTfiJrhbWHXlPCOzAtMCM4gNrff577FAg==
 config:
   openbao-aws:domainName: keeper.goodmannershosting.com
   openbao-aws:auroraMaxAcu: "1"
   openbao-aws:vpcCidr: 10.99.0.0/16
   openbao-aws:openbaoVersion: "2.5"
-  openbao-aws:disableHealthChecks: "true"
+  openbao-aws:disableHealthChecks: "false"
   openbao-aws:openbaoDomain: keeper.goodmanners.services
   openbao-aws:openbaoImage: docker.io/openbao/openbao

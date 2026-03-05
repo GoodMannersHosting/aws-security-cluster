@@ -27,24 +27,11 @@ const taskDef = new aws.ecs.TaskDefinition("OpenBaoTask", {
   taskRoleArn: taskRole.arn,
   containerDefinitions: pulumi
     .all([dbSecret.arn, logGroup.name, regionName, kmsKey.keyId, kmsKey.arn, taskRole.arn])
-    .apply(([secretArn, logGroupName, reg, keyId, keyArn, taskRoleArn]) => {
-      // #region agent log
-      if (!pulumi.runtime.isDryRun() && keyId && keyArn && taskRoleArn) {
-        fetch("http://127.0.0.1:7928/ingest/a7c1ba33-c21a-4c15-88bd-6d194c7dc362", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "b48217" },
-          body: JSON.stringify({
-            sessionId: "b48217",
-            location: "openbao-aws/ecs/task.ts:deploy",
-            message: "KMS values passed to OpenBao task",
-            data: { keyId, keyArn, region: reg, taskRoleArn },
-            hypothesisId: "H1,H3,H4,H5",
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-      }
-      // #endregion
+    .apply(([secretArn, logGroupName, reg, keyId, keyArn, _]) => {
       // HA mode: multiple OpenBao tasks share PostgreSQL; one becomes active, others standby (see https://openbao.org/docs/concepts/ha/)
+      // Health check: pass when unsealed and responding. Requiring only "standby":false caused ECS to kill standby tasks
+      // before the cluster could stabilize (active was often the older task; new tasks stayed standby and were replaced).
+      // Relaxed to "sealed":false so all unsealed nodes pass; Traefik may hit standbys which redirect/forward to active.
       const openbaoConfig = `listener "tcp" {
   address     = "0.0.0.0:8200"
   tls_disable = true
@@ -81,6 +68,11 @@ api_addr     = "https://${openbaoDomain}"
             "traefik.http.routers.openbao.tls": "true",
             "traefik.http.routers.openbao.tls.certresolver": "le",
             "traefik.http.services.openbao.loadbalancer.server.port": "8200",
+            // Traefik health check: only 200 is healthy; standby returns 429 and is removed from rotation.
+            "traefik.http.services.openbao.loadbalancer.healthcheck.path": "/v1/sys/health",
+            "traefik.http.services.openbao.loadbalancer.healthcheck.interval": "15s",
+            "traefik.http.services.openbao.loadbalancer.healthcheck.timeout": "5s",
+            "traefik.http.services.openbao.loadbalancer.healthcheck.status": "200",
           },
           logConfiguration: {
             logDriver: "awslogs",
@@ -92,7 +84,10 @@ api_addr     = "https://${openbaoDomain}"
           },
           ...(!disableHealthChecks && {
             healthCheck: {
-              command: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:8200/v1/sys/health || exit 1"],
+              command: [
+                "CMD-SHELL",
+                "wget -q -O- 'http://127.0.0.1:8200/v1/sys/health?standbyok=1' | grep -qE '\"sealed\"[[:space:]]*:[[:space:]]*false' || exit 1",
+              ],
               interval: 30,
               timeout: 5,
               retries: 3,
