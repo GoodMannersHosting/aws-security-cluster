@@ -50,8 +50,9 @@ const traefikTaskDef = new aws.ecs.TaskDefinition("TraefikTask", {
     .apply(([clusterName, region, logGroupName, zoneId, dom]) => {
       const dashboardDomain = dom ? `traefik.${dom}` : null;
       const traefikArgs = [
+        "--ping",
         "--api.dashboard=true",
-        "--api.insecure=true", // Expose API (and /ping) on :8080 for ECS container health check
+        "--api.insecure=true", // Expose API/ping on :8080 for `traefik healthcheck --ping`
         "--entrypoints.web.address=:80",
         "--entrypoints.websecure.address=:443",
         // Accept Proxy Protocol v2 from NLB (trust VPC CIDR where NLB nodes live)
@@ -122,11 +123,11 @@ const traefikTaskDef = new aws.ecs.TaskDefinition("TraefikTask", {
           },
         },
         healthCheck: {
-          command: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:8080/ping || exit 1"],
+          command: ["CMD-SHELL", "traefik healthcheck --ping || exit 1"],
           interval: 30,
           timeout: 5,
           retries: 3,
-          startPeriod: 90, // EFS mount (up to 30s) + acme init + Traefik startup
+          startPeriod: 15,
         },
       };
       return JSON.stringify([container]);
