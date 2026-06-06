@@ -19,7 +19,7 @@ import json, sys
 doc = json.load(open(sys.argv[1]))
 doc['bound_audiences'] = [sys.argv[2]]
 json.dump(doc, sys.stdout)
-" "$1" "$AUTHENTIK_CLIENT_ID"
+" "$1" "$2"
 }
 
 write_policies() {
@@ -37,7 +37,7 @@ write_oidc_roles() {
   }
   echo "==> oidc roles"
   for role in admin reader operator; do
-    subst_client_id "$ROOT/roles/${role}.json" \
+    subst_client_id "$ROOT/roles/${role}.json" "$AUTHENTIK_CLIENT_ID" \
       | bao write "auth/oidc/role/${role}" -
   done
 }
