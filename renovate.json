@@ -1,0 +1,105 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "labels": ["dependencies"],
+  "schedule": ["before 6am on monday"],
+  "timezone": "America/New_York",
+  "prConcurrentLimit": 5,
+  "docker-compose": {
+    "enabled": true
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Compose image lines: image: name:${TAG:-version}",
+      "managerFilePatterns": [
+        "(^|/)stacks/.+/compose\\.ya?ml$",
+        "(^|/)stacks/.+/docker-compose\\.ya?ml$"
+      ],
+      "matchStrings": [
+        "image:\\s+(?<depName>[^\\s$\"']+):\\$\\{(?<envName>[A-Z0-9_]+):-(?<currentValue>[^}\"']+)\\}"
+      ],
+      "datasourceTemplate": "docker",
+      "autoReplaceStringTemplate": "image: {{{depName}}}:${{{envName}}:-{{{newValue}}}}"
+    },
+    {
+      "customType": "regex",
+      "description": "Compose image lines: image: ${IMAGE:-name}:${TAG:-version}",
+      "managerFilePatterns": ["(^|/)stacks/.+/compose\\.ya?ml$"],
+      "matchStrings": [
+        "image:\\s+\\$\\{(?<imageVar>[A-Z0-9_]+):-(?<depName>[^}]+)\\}:\\$\\{(?<envName>[A-Z0-9_]+):-(?<currentValue>[^}]+)\\}"
+      ],
+      "datasourceTemplate": "docker",
+      "autoReplaceStringTemplate": "image: ${{{imageVar}}:-{{{depName}}}}:${{{envName}}:-{{{newValue}}}}"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Group Pulumi npm deps per stack",
+      "matchManagers": ["npm"],
+      "matchPaths": ["infrastructure/core-aws/**"],
+      "groupName": "pulumi core-aws"
+    },
+    {
+      "description": "Group Pulumi npm deps per stack",
+      "matchManagers": ["npm"],
+      "matchPaths": ["infrastructure/authentik-aws/**"],
+      "groupName": "pulumi authentik-aws"
+    },
+    {
+      "description": "Group Pulumi npm deps per stack",
+      "matchManagers": ["npm"],
+      "matchPaths": ["infrastructure/openbao-aws/**"],
+      "groupName": "pulumi openbao-aws"
+    },
+    {
+      "description": "Group Pulumi npm deps per stack",
+      "matchManagers": ["npm"],
+      "matchPaths": ["infrastructure/emergency-bastion/**"],
+      "groupName": "pulumi emergency-bastion"
+    },
+    {
+      "description": "Group container updates per Compose stack",
+      "matchManagers": ["docker-compose", "custom.regex"],
+      "matchFileNames": ["stacks/traefik/**"],
+      "groupName": "traefik stack"
+    },
+    {
+      "description": "Group container updates per Compose stack",
+      "matchManagers": ["docker-compose", "custom.regex"],
+      "matchFileNames": ["stacks/authentik/**"],
+      "groupName": "authentik stack"
+    },
+    {
+      "description": "Group container updates per Compose stack",
+      "matchManagers": ["docker-compose", "custom.regex"],
+      "matchFileNames": ["stacks/openbao/**"],
+      "groupName": "openbao stack"
+    },
+    {
+      "description": "Group container updates per Compose stack",
+      "matchManagers": ["docker-compose", "custom.regex"],
+      "matchFileNames": ["stacks/doco-cd/**"],
+      "groupName": "doco-cd stack"
+    },
+    {
+      "description": "Group container updates per Compose stack",
+      "matchManagers": ["docker-compose", "custom.regex"],
+      "matchFileNames": ["stacks/postgres/**"],
+      "groupName": "postgres stack"
+    },
+    {
+      "description": "Hold major image bumps for production stacks until reviewed",
+      "matchManagers": ["docker-compose", "custom.regex"],
+      "matchFileNames": ["stacks/**"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "Do not bump floating latest tags automatically",
+      "matchDatasources": ["docker"],
+      "matchCurrentValue": "latest",
+      "enabled": false
+    }
+  ]
+}
