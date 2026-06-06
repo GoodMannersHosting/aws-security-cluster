@@ -20,25 +20,23 @@
     {
       "customType": "regex",
       "description": "Compose images: image: name:${TAG:-version}",
-      "managerFilePatterns": [
+      "fileMatch": [
         "(^|/)stacks/.+/compose\\.ya?ml$",
         "(^|/)stacks/.+/docker-compose\\.ya?ml$"
       ],
       "matchStrings": [
         "image:\\s+(?<depName>[^\\s$\"']+):\\$\\{(?<envName>[A-Z0-9_]+):-(?<currentValue>[^}\"']+)\\}"
       ],
-      "datasourceTemplate": "docker",
-      "autoReplaceStringTemplate": "image: {{{depName}}}:${{{envName}}:-{{{newValue}}}}"
+      "datasourceTemplate": "docker"
     },
     {
       "customType": "regex",
       "description": "Compose images: image: ${IMAGE:-name}:${TAG:-version}",
-      "managerFilePatterns": ["(^|/)stacks/.+/compose\\.ya?ml$"],
+      "fileMatch": ["(^|/)stacks/.+/compose\\.ya?ml$"],
       "matchStrings": [
         "image:\\s+\\$\\{(?<imageVar>[A-Z0-9_]+):-(?<depName>[^}]+)\\}:\\$\\{(?<envName>[A-Z0-9_]+):-(?<currentValue>[^}]+)\\}"
       ],
-      "datasourceTemplate": "docker",
-      "autoReplaceStringTemplate": "image: ${{{imageVar}}:-{{{depName}}}}:${{{envName}}:-{{{newValue}}}}"
+      "datasourceTemplate": "docker"
     }
   ],
   "packageRules": [
@@ -71,28 +69,28 @@
     {
       "description": "Group Pulumi npm dependencies per stack",
       "matchManagers": ["npm"],
-      "matchPaths": ["infrastructure/core-aws/**"],
+      "matchFileNames": ["infrastructure/core-aws/**"],
       "groupName": "pulumi core-aws",
       "groupSlug": "pulumi-core-aws"
     },
     {
       "description": "Group Pulumi npm dependencies per stack",
       "matchManagers": ["npm"],
-      "matchPaths": ["infrastructure/authentik-aws/**"],
+      "matchFileNames": ["infrastructure/authentik-aws/**"],
       "groupName": "pulumi authentik-aws",
       "groupSlug": "pulumi-authentik-aws"
     },
     {
       "description": "Group Pulumi npm dependencies per stack",
       "matchManagers": ["npm"],
-      "matchPaths": ["infrastructure/openbao-aws/**"],
+      "matchFileNames": ["infrastructure/openbao-aws/**"],
       "groupName": "pulumi openbao-aws",
       "groupSlug": "pulumi-openbao-aws"
     },
     {
       "description": "Group Pulumi npm dependencies per stack",
       "matchManagers": ["npm"],
-      "matchPaths": ["infrastructure/emergency-bastion/**"],
+      "matchFileNames": ["infrastructure/emergency-bastion/**"],
       "groupName": "pulumi emergency-bastion",
       "groupSlug": "pulumi-emergency-bastion"
     },
