@@ -1,0 +1,5 @@
+# Public age recipients only. Secret key stays on keeper at
+# /opt/stacks/doco-cd/sops_age_key.txt (never commit).
+creation_rules:
+  - path_regex: (?i)^stacks/.+/secrets\.enc\.env$
+    age: age1aa9az432whplu0ae9lnz2n9ujvz2nf22uwdm7nv8yzy58ut64sfswuax8z

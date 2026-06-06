@@ -58,10 +58,8 @@ grep -q '^OPENBAO_CONFIG_DIR=' "${OPENBAO_ENV}" || \
 grep -q '^OPENBAO_AWS_CREDS_DIR=' "${OPENBAO_ENV}" || \
   echo 'OPENBAO_AWS_CREDS_DIR=/opt/stacks/openbao/aws' >>"${OPENBAO_ENV}"
 
-log "Symlink host .env into clone (Compose env_file: .env)"
-for stack in traefik authentik openbao; do
-  ln -sf "${STACKS}/${stack}/.env" "${CLONE_DIR}/stacks/${stack}/.env"
-done
+log "Ensure Doco-CD age key on host for SOPS decrypt"
+install -d -m 0700 "${STACKS}/doco-cd"
 
 OPS_DIR="${CLONE_DIR}/stacks/ops"
 chmod +x "${OPS_DIR}"/*.sh 2>/dev/null || true
@@ -115,7 +113,8 @@ docker volume inspect doco-cd_doco_cd_data >/dev/null 2>&1 \
   if [[ -f sops_age_key.txt ]]; then
     COMPOSE_ARGS+=(-f compose.sops.yaml)
   fi
-  docker compose --env-file "${DOCO_ENV}" "${COMPOSE_ARGS[@]}" up -d
+  docker compose -p hcloud-doco-cd --env-file "${DOCO_ENV}" \
+    "${COMPOSE_ARGS[@]}" up -d
 )
 
 if docker ps --format '{{.Names}}' | grep -q '^authentik-worker$'; then

@@ -17,15 +17,23 @@ else
   ok "doco-cd container running"
   if docker inspect doco-cd --format '{{range .Mounts}}{{.Destination}} {{end}}' \
     | grep -qw '/opt/stacks'; then
-    ok "doco-cd mounts /opt/stacks (env_files visible in container)"
+    ok "doco-cd mounts /opt/stacks (bind paths + age key)"
   else
-    warn "doco-cd missing /opt/stacks mount — .doco-cd.yml env_files will fail"
+    warn "doco-cd missing /opt/stacks mount (age key / bind data)"
   fi
   if ! docker compose ls --format json 2>/dev/null \
     | jq -e '.[] | select(.Name=="hcloud-doco-cd")' >/dev/null 2>&1; then
     warn "hcloud-doco-cd compose project missing (Doco-CD not GitOps-managed)"
   else
     ok "hcloud-doco-cd compose project present"
+  fi
+  deploy_sha="$(docker inspect doco-cd \
+    --format '{{index .Config.Labels "cd.doco.deployment.target.sha"}}' \
+    2>/dev/null || true)"
+  if [[ -z "${deploy_sha}" ]]; then
+    warn "doco-cd missing cd.doco.deployment.target.sha (run bootstrap-doco-self-deploy.sh)"
+  else
+    ok "doco-cd GitOps-stamped at ${deploy_sha:0:7}"
   fi
 fi
 
@@ -66,6 +74,15 @@ for legacy in \
   "${STACKS}/openbao/compose.yaml"; do
   if [[ -f "${legacy}" ]]; then
     warn "legacy manual compose still present: ${legacy}"
+  fi
+done
+
+for stack in traefik authentik openbao doco-cd; do
+  enc="${DOCO_CLONE}/stacks/${stack}/secrets.enc.env"
+  if [[ -f "${enc}" ]]; then
+    ok "encrypted env in git clone: stacks/${stack}/secrets.enc.env"
+  else
+    warn "missing stacks/${stack}/secrets.enc.env in Doco-CD clone"
   fi
 done
 

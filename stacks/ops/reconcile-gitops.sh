@@ -12,6 +12,7 @@ BRANCH="${BRANCH:-main}"
 OPS_DIR="${CLONE_DIR}/stacks/ops"
 
 log() { printf '==> %s\n' "$*"; }
+warn() { printf 'WARN %s\n' "$*" >&2; }
 
 doco_compose_dir() {
   if [[ -f "${DOCO_CLONE}/stacks/doco-cd/compose.yaml" ]]; then
@@ -27,23 +28,12 @@ doco_compose_args() {
   printf '%s\n' "${args[@]}"
 }
 
-ensure_doco_from_gitops_clone() {
-  local dir env_file
-  dir="$(doco_compose_dir)"
-  env_file="${STACKS}/doco-cd/.env"
-  [[ -f "${dir}/compose.yaml" ]] || return 0
-  docker volume inspect doco-cd_doco_cd_data >/dev/null 2>&1 \
-    || docker volume create doco-cd_doco_cd_data >/dev/null
-  log "ensure doco-cd from ${dir} (same path GitOps uses)"
-  mapfile -t args < <(doco_compose_args)
-  docker ps -aq --filter name=_doco-cd --filter status=created \
-    | xargs -r docker rm -f
-  (
-    cd "${dir}"
-    docker compose -p hcloud-doco-cd --env-file "${env_file}" \
-      "${args[@]}" up -d
-  )
-  sleep 2
+doco_has_deploy_labels() {
+  local sha
+  sha="$(docker inspect doco-cd \
+    --format '{{index .Config.Labels "cd.doco.deployment.target.sha"}}' \
+    2>/dev/null || true)"
+  [[ -n "${sha}" ]]
 }
 
 ensure_host_clone_remote() {
@@ -184,9 +174,15 @@ archive_if_exists "${STACKS}/traefik/docker-compose.yaml"
 archive_if_exists "${STACKS}/authentik/compose.yaml"
 archive_if_exists "${STACKS}/openbao/compose.yaml"
 
-ensure_doco_from_gitops_clone
-trigger_main_webhook
-ensure_doco_from_gitops_clone
+if doco_has_deploy_labels; then
+  trigger_main_webhook
+elif [[ -x "${OPS_DIR}/bootstrap-doco-self-deploy.sh" ]]; then
+  log "doco-cd not GitOps-stamped yet; run one-time self-deploy bootstrap"
+  "${OPS_DIR}/bootstrap-doco-self-deploy.sh"
+else
+  warn "doco-cd missing deploy labels and bootstrap-doco-self-deploy.sh"
+  trigger_main_webhook
+fi
 
 if [[ -x "${OPS_DIR}/verify-gitops.sh" ]]; then
   log "Verify GitOps"

@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# Age key + encrypted backups of /opt/stacks/*.env (host only, never commit).
+# age key on keeper + encrypt stack secrets into the git clone for commit.
 set -euo pipefail
 
 SECRETS_DIR="${SECRETS_DIR:-/opt/stack-secrets}"
-AGE_KEY="${SECRETS_DIR}/sops_age_key.txt"
-AGE_PUB="${SECRETS_DIR}/age.pub"
+AGE_KEY="${AGE_KEY:-${SECRETS_DIR}/sops_age_key.txt}"
 STACKS="${STACKS:-/opt/stacks}"
-DOCO_DIR="${DOCO_DIR:-/opt/hcloud-security-cluster/stacks/doco-cd}"
+REPO_ROOT="${REPO_ROOT:-/opt/hcloud-security-cluster}"
+DOCO_KEY="${STACKS}/doco-cd/sops_age_key.txt"
+ENCRYPT_SCRIPT="${REPO_ROOT}/stacks/ops/encrypt-stack-secrets.sh"
 
 log() { printf '==> %s\n' "$*"; }
 
@@ -24,32 +25,14 @@ if [[ ! -f "${AGE_KEY}" ]]; then
   chmod 600 "${AGE_KEY}"
 fi
 
-age-keygen -y "${AGE_KEY}" >"${AGE_PUB}"
-chmod 644 "${AGE_PUB}"
+install -d -m 0700 "${STACKS}/doco-cd"
+install -m 600 "${AGE_KEY}" "${DOCO_KEY}"
+log "Installed Doco-CD age key at ${DOCO_KEY}"
 
-install -m 600 "${AGE_KEY}" "${DOCO_DIR}/sops_age_key.txt"
+if [[ -x "${ENCRYPT_SCRIPT}" ]]; then
+  REPO_ROOT="${REPO_ROOT}" STACKS="${STACKS}" "${ENCRYPT_SCRIPT}"
+else
+  log "Skip encrypt (run ${ENCRYPT_SCRIPT} after repo update)"
+fi
 
-encrypt_env() {
-  local stack="$1"
-  local plain="${STACKS}/${stack}/.env"
-  local enc="${SECRETS_DIR}/${stack}.env.enc"
-  [[ -f "${plain}" ]] || return 0
-  local tmp
-  tmp="$(mktemp)"
-  grep -Ev '^[[:space:]]*(#|$)' "${plain}" >"${tmp}" || true
-  if ! sops encrypt --input-type dotenv --output-type dotenv \
-    --age "$(cat "${AGE_PUB}")" "${tmp}" >"${enc}" 2>/dev/null; then
-    rm -f "${tmp}"
-    log "Skip encrypt ${plain} (dotenv parse failed)"
-    return 0
-  fi
-  rm -f "${tmp}"
-  chmod 600 "${enc}"
-  log "Encrypted ${plain} -> ${enc}"
-}
-
-for stack in traefik authentik openbao doco-cd; do
-  encrypt_env "${stack}"
-done
-
-log "Public age recipient (for .sops.yaml): $(cat "${AGE_PUB}")"
+log "Public age recipient: $(age-keygen -y "${AGE_KEY}")"

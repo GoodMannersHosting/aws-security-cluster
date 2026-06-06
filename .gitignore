@@ -16,10 +16,9 @@ bao/config.env
 # age secret key for SOPS (Doco-CD); never commit
 stacks/doco-cd/sops_age_key.txt
 
-# Plaintext counterparts of committed SOPS files (encrypt → *.enc.* then commit)
+# Plaintext counterparts of committed SOPS files (encrypt → secrets.enc.env then commit)
 stacks/**/*.env.plain
 stacks/**/secrets.env
-*.env.enc
 
 # System Files
 .DS_Store

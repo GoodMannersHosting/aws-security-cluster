@@ -1,5 +1,6 @@
-# Production (keeper.goodmanners.services): secrets and bind-mount data under /opt/stacks/.
-# Doco-CD mounts /opt/stacks read-only so env_files below resolve inside the container.
+# Production (keeper.goodmanners.services): bind-mount data under /opt/stacks/.
+# Stack secrets live in git as stacks/*/secrets.enc.env (SOPS + age).
+# Doco-CD decrypts env_files at deploy time; age key stays on the host only.
 # MAX_CONCURRENT_DEPLOYMENTS=1 serializes deploys in list order.
 
 ---
@@ -9,7 +10,7 @@ webhook_filter: ^refs/heads/main$
 compose_files:
   - docker-compose.yaml
 env_files:
-  - /opt/stacks/traefik/.env
+  - secrets.enc.env
 
 ---
 name: hcloud-authentik
@@ -18,7 +19,7 @@ webhook_filter: ^refs/heads/main$
 compose_files:
   - compose.yaml
 env_files:
-  - /opt/stacks/authentik/.env
+  - secrets.enc.env
 
 ---
 name: hcloud-openbao
@@ -27,7 +28,7 @@ webhook_filter: ^refs/heads/main$
 compose_files:
   - compose.yaml
 env_files:
-  - /opt/stacks/openbao/.env
+  - secrets.enc.env
 
 ---
 name: hcloud-doco-cd
@@ -39,4 +40,4 @@ compose_files:
   - compose.yaml
   - compose.sops.yaml
 env_files:
-  - /opt/stacks/doco-cd/.env
+  - secrets.enc.env
