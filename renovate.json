@@ -2,10 +2,8 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:best-practices",
-    "docker:disableMajor",
     ":semanticCommits"
   ],
-  "ignorePresets": ["docker:pinDigests"],
   "labels": ["dependencies"],
   "semanticCommitType": "chore",
   "semanticCommitScope": "deps",
@@ -14,10 +12,9 @@
   "prConcurrentLimit": 5,
   "rebaseWhen": "behind-base-branch",
   "dependencyDashboard": true,
-  "docker-compose": {
-    "digest": {
-      "enabled": false
-    }
+  "platformAutomerge": true,
+  "lockFileMaintenance": {
+    "automerge": true
   },
   "customManagers": [
     {
@@ -46,14 +43,19 @@
   ],
   "packageRules": [
     {
-      "description": "Production stacks: tag-based images, no digest pinning, manual merge",
-      "matchFileNames": ["stacks/**"],
+      "description": "Automerge minor, patch, pin, and digest updates",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true
+    },
+    {
+      "description": "Major updates require manual review before deploy",
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    },
+    {
+      "description": "Pin Docker images to SHA digests for immutable deploys",
       "matchDatasources": ["docker"],
-      "automerge": false,
-      "pinDigests": false,
-      "digest": {
-        "enabled": false
-      }
+      "pinDigests": true
     },
     {
       "description": "Ignore floating latest tags on socket-proxy and similar",
