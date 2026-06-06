@@ -5,12 +5,33 @@ set -euo pipefail
 REPO_URL="${REPO_URL:-https://github.com/GoodMannersHosting/aws-security-cluster.git}"
 REPO_FULL="${REPO_FULL:-GoodMannersHosting/aws-security-cluster}"
 CLONE_DIR="${CLONE_DIR:-/opt/hcloud-security-cluster}"
+DOCO_CLONE="${DOCO_CLONE:-/var/lib/docker/volumes/doco-cd_doco_cd_data/_data/github.com/${REPO_FULL}}"
 STACKS="${STACKS:-/opt/stacks}"
 DOCO_ENV="${STACKS}/doco-cd/.env"
 BRANCH="${BRANCH:-main}"
 OPS_DIR="${CLONE_DIR}/stacks/ops"
 
 log() { printf '==> %s\n' "$*"; }
+
+ensure_host_clone_remote() {
+  local current
+  current="$(git -C "${CLONE_DIR}" remote get-url origin 2>/dev/null || true)"
+  if [[ "${current}" != "${REPO_URL}" ]]; then
+    log "set host clone origin -> ${REPO_URL} (was: ${current})"
+    git -C "${CLONE_DIR}" remote set-url origin "${REPO_URL}"
+  fi
+}
+
+reset_doco_clone_to_main() {
+  [[ -d "${DOCO_CLONE}/.git" ]] || {
+    log "Doco-CD deploy clone not present yet (created on first deploy)"
+    return 0
+  }
+  log "reset Doco-CD deploy clone to origin/${BRANCH}"
+  git -C "${DOCO_CLONE}" fetch origin "${BRANCH}"
+  git -C "${DOCO_CLONE}" checkout "${BRANCH}"
+  git -C "${DOCO_CLONE}" reset --hard "origin/${BRANCH}"
+}
 
 archive_if_exists() {
   local path="$1"
@@ -82,9 +103,12 @@ trigger_main_webhook() {
 }
 
 log "Update host clone ${CLONE_DIR}"
+ensure_host_clone_remote
 git -C "${CLONE_DIR}" fetch origin "${BRANCH}"
 git -C "${CLONE_DIR}" checkout "${BRANCH}"
 git -C "${CLONE_DIR}" pull --ff-only origin "${BRANCH}"
+
+reset_doco_clone_to_main
 
 install_sops_age_key() {
   local src="${CLONE_DIR}/stacks/doco-cd/sops_age_key.txt"

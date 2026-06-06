@@ -3,6 +3,8 @@
 set -euo pipefail
 
 CLONE_DIR="${CLONE_DIR:-/opt/hcloud-security-cluster}"
+REPO_SLUG="${REPO_SLUG:-GoodMannersHosting/aws-security-cluster}"
+DOCO_CLONE="${DOCO_CLONE:-/var/lib/docker/volumes/doco-cd_doco_cd_data/_data/github.com/${REPO_SLUG}}"
 STACKS="${STACKS:-/opt/stacks}"
 fail=0
 
@@ -22,14 +24,33 @@ else
 fi
 
 if [[ ! -d "${CLONE_DIR}/.git" ]]; then
-  warn "missing git clone at ${CLONE_DIR}"
+  warn "missing host ops clone at ${CLONE_DIR}"
 else
-  ok "host clone present at ${CLONE_DIR}"
+  ok "host ops clone present at ${CLONE_DIR}"
   behind="$(git -C "${CLONE_DIR}" rev-list --count HEAD..origin/main 2>/dev/null || echo 0)"
   if [[ "${behind}" -gt 0 ]]; then
     warn "host clone is ${behind} commit(s) behind origin/main"
   else
     ok "host clone matches origin/main"
+  fi
+fi
+
+if [[ ! -d "${DOCO_CLONE}/.git" ]]; then
+  warn "Doco-CD deploy clone missing at ${DOCO_CLONE}"
+else
+  ok "Doco-CD deploy clone present"
+  branch="$(git -C "${DOCO_CLONE}" rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
+  if [[ "${branch}" != "main" ]]; then
+    warn "Doco-CD clone on branch ${branch}, expected main"
+  else
+    ok "Doco-CD clone on main"
+  fi
+  doco_sha="$(git -C "${DOCO_CLONE}" rev-parse HEAD 2>/dev/null || echo "")"
+  host_sha="$(git -C "${CLONE_DIR}" rev-parse HEAD 2>/dev/null || echo "")"
+  if [[ -n "${doco_sha}" && -n "${host_sha}" && "${doco_sha}" != "${host_sha}" ]]; then
+    warn "Doco-CD clone (${doco_sha:0:7}) differs from host clone (${host_sha:0:7})"
+  elif [[ -n "${doco_sha}" ]]; then
+    ok "Doco-CD clone at ${doco_sha:0:7} (matches host)"
   fi
 fi
 
@@ -45,13 +66,15 @@ done
 while read -r project configs; do
   [[ -z "${project}" ]] && continue
   case "${project}" in
-    doco-cd) continue ;;
+    doco-cd|hcloud-doco-cd) continue ;;
   esac
-  if grep -q "${STACKS}/${project}" <<<"${configs}"; then
+  if grep -q "${STACKS}/" <<<"${configs}" && grep -q 'compose' <<<"${configs}"; then
     warn "project ${project} uses /opt/stacks compose: ${configs}"
   fi
-  if ! grep -q "${CLONE_DIR}/stacks" <<<"${configs}"; then
-    warn "project ${project} not using git clone compose: ${configs}"
+  if ! grep -q "${DOCO_CLONE}/stacks" <<<"${configs}"; then
+    warn "project ${project} not using Doco-CD git clone: ${configs}"
+  else
+    ok "project ${project} deployed from Doco-CD clone"
   fi
 done < <(docker compose ls --format json 2>/dev/null \
   | jq -r '.[] | "\(.Name) \(.ConfigFiles)"' 2>/dev/null || docker compose ls 2>/dev/null | tail -n +2)
