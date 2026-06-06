@@ -31,6 +31,20 @@ audit "file" "keeper-data" {
 EOF
 }
 
+prepare_audit_log() {
+  local host_data="${OPENBAO_DATA_DIR:-/mnt/data/openbao}"
+  local log_file="${host_data}/audit.log"
+  install -d -m 0750 "${host_data}"
+  if [[ ! -f "${log_file}" ]]; then
+    install -m 0600 /dev/null "${log_file}"
+  fi
+  # openbao UBI image runs as uid 100, gid 1000
+  chown 100:1000 "${host_data}" "${log_file}" 2>/dev/null || \
+    chown 100:100 "${log_file}" 2>/dev/null || true
+  chmod 0750 "${host_data}"
+  chmod 0600 "${log_file}"
+}
+
 ensure_audit_config() {
   [[ -f "${OPENBAO_CONFIG}" ]] || die "missing ${OPENBAO_CONFIG}"
   if audit_in_config; then
@@ -60,7 +74,15 @@ reload_openbao() {
 }
 
 main() {
-  if ensure_audit_config && [[ "${RESTART}" == "1" ]]; then
+  local changed=0
+  if ensure_audit_config; then
+    changed=1
+  fi
+  prepare_audit_log
+  if [[ "${changed}" -eq 1 && "${RESTART}" == "1" ]]; then
+    reload_openbao
+  elif [[ "${changed}" -eq 0 && "${RESTART}" == "1" ]]; then
+    # stanza present but permissions may still block unseal
     reload_openbao
   fi
   log "done"
