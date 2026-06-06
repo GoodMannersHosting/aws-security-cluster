@@ -35,13 +35,12 @@ jobs:
 
       - name: Install OpenBao CLI
         env:
-          BAO_CLI_VERSION: "2.2.0"
+          BAO_CLI_VERSION: "2.5.4"
         run: |
           set -euo pipefail
-          curl -fsSL -o bao.tgz \
-            "https://github.com/openbao/openbao/releases/download/v${BAO_CLI_VERSION}/bao_${BAO_CLI_VERSION}_linux_amd64.tar.gz"
-          sudo tar -xzf bao.tgz -C /usr/local/bin bao
-          rm bao.tgz
+          curl -fsSL -o openbao.deb \
+            "https://github.com/openbao/openbao/releases/download/v${BAO_CLI_VERSION}/openbao_${BAO_CLI_VERSION}_linux_amd64.deb"
+          sudo dpkg -i openbao.deb
           bao version
 
       - name: Authenticate to OpenBao (GitHub OIDC)
