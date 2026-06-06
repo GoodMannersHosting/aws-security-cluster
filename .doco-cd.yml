@@ -33,6 +33,8 @@ env_files:
 name: hcloud-doco-cd
 working_dir: stacks/doco-cd
 webhook_filter: ^refs/heads/main$
+force_recreate: false
+timeout: 300
 compose_files:
   - compose.yaml
   - compose.sops.yaml

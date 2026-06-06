@@ -21,6 +21,12 @@ else
   else
     warn "doco-cd missing /opt/stacks mount — .doco-cd.yml env_files will fail"
   fi
+  if ! docker compose ls --format json 2>/dev/null \
+    | jq -e '.[] | select(.Name=="hcloud-doco-cd")' >/dev/null 2>&1; then
+    warn "hcloud-doco-cd compose project missing (Doco-CD not GitOps-managed)"
+  else
+    ok "hcloud-doco-cd compose project present"
+  fi
 fi
 
 if [[ ! -d "${CLONE_DIR}/.git" ]]; then

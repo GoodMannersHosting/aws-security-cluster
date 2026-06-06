@@ -19,6 +19,8 @@ services:
       - traefik
     labels:
       - traefik.enable=true
+      # GitOps self-deploy: avoid recreating this container on bind/secret drift
+      - "cd.doco.deployment.recreate.ignore={bindMounts: [/var/run/docker.sock, /opt/stacks, /data], secrets: [sops_age_key]}"
       - traefik.docker.network=traefik
       - traefik.http.services.doco-cd.loadbalancer.server.port=80
       # GitHub/GitLab webhooks cannot pass Authentik forward auth.
