@@ -85,6 +85,8 @@ if [[ ! -f "${DOCO_ENV}" ]] && [[ ! -L "${DOCO_ENV}" ]]; then
 fi
 
 log "Starting Doco-CD"
+docker volume inspect doco-cd_doco_cd_data >/dev/null 2>&1 \
+  || docker volume create doco-cd_doco_cd_data >/dev/null
 (
   cd "${DOCO_DIR}"
   docker compose --env-file "${STACK_ENV_DIR}/doco-cd.env" -f compose.yaml up -d

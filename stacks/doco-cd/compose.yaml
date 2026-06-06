@@ -53,5 +53,5 @@ networks:
 
 volumes:
   doco_cd_data:
-    # Fixed name: survives project rename doco-cd -> hcloud-doco-cd
     name: doco-cd_doco_cd_data
+    external: true

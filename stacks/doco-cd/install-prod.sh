@@ -107,6 +107,8 @@ chmod +x "${OPS_DIR}/harden-host.sh"
 DOCKER_RESTART=0 "${OPS_DIR}/harden-host.sh"
 
 log "Starting Doco-CD"
+docker volume inspect doco-cd_doco_cd_data >/dev/null 2>&1 \
+  || docker volume create doco-cd_doco_cd_data >/dev/null
 (
   cd "${CLONE_DIR}/stacks/doco-cd"
   COMPOSE_ARGS=(-f compose.yaml)
