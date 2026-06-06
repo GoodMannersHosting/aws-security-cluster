@@ -118,3 +118,23 @@ Requires **`age`** and **`sops`** on the host for encrypted env backups. Doco-CD
 Pulumi under **`infrastructure/`** is reference only for the Hetzner deployment. See [`.github/readme.md`](../.github/readme.md) for the AWS stack overview.
 
 OpenBao policy and OIDC files: repo root **`bao/`**.
+
+## Dependency updates (Renovate)
+
+[`renovate.json`](../renovate.json) follows [Renovate upgrade best practices](https://docs.renovatebot.com/upgrade-best-practices):
+
+- **`config:best-practices`** — lock file maintenance, npm release-age guard, config migration
+- **`docker:disableMajor`** — no automatic major image bumps (review Postgres/Traefik majors manually)
+- **No digest pinning** on `stacks/**` — compose uses `${TAG:-default}` env syntax; Doco-CD deploys by tag
+- **Grouped PRs** per stack (`stack-authentik`, `stack-openbao`, …) and per Pulumi project
+- **Dependency dashboard** — track and approve updates from the Renovate issue
+- **Semantic commits** — `chore(deps): …` to match conventional commits on `main`
+
+Enable once:
+
+1. Install the [Mend Renovate GitHub App](https://github.com/apps/renovate) on **GoodMannersHosting/aws-security-cluster**.
+2. Merge the Renovate config PR and any onboarding PR Renovate opens.
+3. Review weekly PRs before merging to `main` (Doco-CD deploys to keeper).
+
+Custom regex managers update `${VAR:-default}` image lines in compose files that the built-in docker-compose manager cannot parse.
+
