@@ -13,6 +13,39 @@ OPS_DIR="${CLONE_DIR}/stacks/ops"
 
 log() { printf '==> %s\n' "$*"; }
 
+doco_compose_dir() {
+  if [[ -f "${DOCO_CLONE}/stacks/doco-cd/compose.yaml" ]]; then
+    printf '%s/stacks/doco-cd' "${DOCO_CLONE}"
+  else
+    printf '%s/stacks/doco-cd' "${CLONE_DIR}"
+  fi
+}
+
+doco_compose_args() {
+  local args=(-f compose.yaml)
+  [[ -f "${STACKS}/doco-cd/sops_age_key.txt" ]] && args+=(-f compose.sops.yaml)
+  printf '%s\n' "${args[@]}"
+}
+
+ensure_doco_from_gitops_clone() {
+  local dir env_file
+  dir="$(doco_compose_dir)"
+  env_file="${STACKS}/doco-cd/.env"
+  [[ -f "${dir}/compose.yaml" ]] || return 0
+  docker volume inspect doco-cd_doco_cd_data >/dev/null 2>&1 \
+    || docker volume create doco-cd_doco_cd_data >/dev/null
+  log "ensure doco-cd from ${dir} (same path GitOps uses)"
+  mapfile -t args < <(doco_compose_args)
+  docker ps -aq --filter name=_doco-cd --filter status=created \
+    | xargs -r docker rm -f
+  (
+    cd "${dir}"
+    docker compose -p hcloud-doco-cd --env-file "${env_file}" \
+      "${args[@]}" up -d
+  )
+  sleep 2
+}
+
 ensure_host_clone_remote() {
   local current
   current="$(git -C "${CLONE_DIR}" remote get-url origin 2>/dev/null || true)"
@@ -23,19 +56,18 @@ ensure_host_clone_remote() {
 }
 
 migrate_legacy_doco_project() {
-  local dir="${CLONE_DIR}/stacks/doco-cd"
-  local env_file="${STACKS}/doco-cd/.env"
-  local vol="doco-cd_doco_cd_data"
+  local dir env_file vol="doco-cd_doco_cd_data"
   local has_legacy has_gitops
   has_legacy="$(docker compose ls --format json 2>/dev/null \
     | jq -r '.[] | select(.Name=="doco-cd") | .Name' 2>/dev/null || true)"
   has_gitops="$(docker compose ls --format json 2>/dev/null \
     | jq -r '.[] | select(.Name=="hcloud-doco-cd") | .Name' 2>/dev/null || true)"
   [[ -n "${has_legacy}" && -z "${has_gitops}" ]] || return 0
+  dir="$(doco_compose_dir)"
+  env_file="${STACKS}/doco-cd/.env"
   log "migrate compose project doco-cd -> hcloud-doco-cd (preserve data volume)"
   docker volume inspect "${vol}" >/dev/null 2>&1 || docker volume create "${vol}" >/dev/null
-  local args=(-f compose.yaml)
-  [[ -f "${STACKS}/doco-cd/sops_age_key.txt" ]] && args+=(-f compose.sops.yaml)
+  mapfile -t args < <(doco_compose_args)
   (
     cd "${dir}"
     docker compose -p doco-cd --env-file "${env_file}" "${args[@]}" \
@@ -152,7 +184,9 @@ archive_if_exists "${STACKS}/traefik/docker-compose.yaml"
 archive_if_exists "${STACKS}/authentik/compose.yaml"
 archive_if_exists "${STACKS}/openbao/compose.yaml"
 
+ensure_doco_from_gitops_clone
 trigger_main_webhook
+ensure_doco_from_gitops_clone
 
 if [[ -x "${OPS_DIR}/verify-gitops.sh" ]]; then
   log "Verify GitOps"
