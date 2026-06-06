@@ -13,6 +13,12 @@ if ! docker ps --filter name=^doco-cd$ --filter status=running -q | grep -q .; t
   warn "doco-cd container is not running"
 else
   ok "doco-cd container running"
+  if docker inspect doco-cd --format '{{range .Mounts}}{{.Destination}} {{end}}' \
+    | grep -qw '/opt/stacks'; then
+    ok "doco-cd mounts /opt/stacks (env_files visible in container)"
+  else
+    warn "doco-cd missing /opt/stacks mount — .doco-cd.yml env_files will fail"
+  fi
 fi
 
 if [[ ! -d "${CLONE_DIR}/.git" ]]; then
