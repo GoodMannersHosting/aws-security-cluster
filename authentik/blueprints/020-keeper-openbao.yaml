@@ -2,7 +2,7 @@ version: 1
 metadata:
   labels:
     blueprints.goauthentik.io/instantiate: "true"
-  name: Keeper OpenBao SSO
+  name: 020 Keeper OpenBao SSO
 entries:
   - id: keeper-groups-scope
     model: authentik_providers_oauth2.scopemapping

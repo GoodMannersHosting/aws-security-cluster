@@ -35,5 +35,6 @@ working_dir: stacks/doco-cd
 webhook_filter: ^refs/heads/main$
 compose_files:
   - compose.yaml
+  - compose.sops.yaml
 env_files:
   - /opt/stacks/doco-cd/.env

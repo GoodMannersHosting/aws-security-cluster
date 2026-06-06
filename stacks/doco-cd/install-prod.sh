@@ -5,7 +5,7 @@
 # Usage: curl -fsSL ... | bash   OR   sudo ./install-prod.sh
 set -euo pipefail
 
-REPO_URL="${REPO_URL:-https://github.com/GoodMannersHosting/hcloud-security-cluster.git}"
+REPO_URL="${REPO_URL:-https://github.com/GoodMannersHosting/aws-security-cluster.git}"
 CLONE_DIR="${CLONE_DIR:-/opt/hcloud-security-cluster}"
 STACKS="${STACKS:-/opt/stacks}"
 DOCO_ENV="${STACKS}/doco-cd/.env"
@@ -63,6 +63,15 @@ for stack in traefik authentik openbao; do
   ln -sf "${STACKS}/${stack}/.env" "${CLONE_DIR}/stacks/${stack}/.env"
 done
 
+OPS_DIR="${CLONE_DIR}/stacks/ops"
+chmod +x "${OPS_DIR}"/*.sh 2>/dev/null || true
+
+if command -v sops >/dev/null 2>&1 && command -v age-keygen >/dev/null 2>&1; then
+  log "SOPS age key + encrypted env backups"
+  SECRETS_DIR=/opt/stack-secrets STACKS="${STACKS}" DOCO_DIR="${CLONE_DIR}/stacks/doco-cd" \
+    "${OPS_DIR}/setup-sops.sh"
+fi
+
 mkdir -p "${STACKS}/doco-cd"
 if [[ ! -f "${DOCO_ENV}" ]]; then
   cp "${CLONE_DIR}/stacks/doco-cd/.env.example" "${DOCO_ENV}"
@@ -80,7 +89,25 @@ install -m 644 "${CLONE_DIR}/stacks/traefik/dynamic/middlewares.yml" \
 log "Starting Doco-CD"
 (
   cd "${CLONE_DIR}/stacks/doco-cd"
-  docker compose --env-file "${DOCO_ENV}" -f compose.yaml up -d
+  COMPOSE_ARGS=(-f compose.yaml)
+  if [[ -f sops_age_key.txt ]]; then
+    COMPOSE_ARGS+=(-f compose.sops.yaml)
+  fi
+  docker compose --env-file "${DOCO_ENV}" "${COMPOSE_ARGS[@]}" up -d
+)
+
+if docker ps --format '{{.Names}}' | grep -q '^authentik-worker$'; then
+  log "Clean Authentik blueprint orphans + AppleDouble files"
+  "${OPS_DIR}/fix-blueprints.sh" "${CLONE_DIR}/authentik/blueprints" || true
+fi
+
+log "Install backup + healthcheck cron"
+"${OPS_DIR}/install-cron.sh" "${OPS_DIR}"
+
+log "Recreate Authentik worker (socket-proxy, no raw docker.sock)"
+(
+  cd "${CLONE_DIR}/stacks/authentik"
+  docker compose up -d worker
 )
 
 # shellcheck disable=SC1090
@@ -93,7 +120,7 @@ cat <<EOF
 Doco-CD is running.
 
 1. DNS: ${HOST} -> this server
-2. GitHub webhook (GoodMannersHosting/hcloud-security-cluster):
+2. GitHub webhook (GoodMannersHosting/aws-security-cluster):
    URL:     https://${HOST}/v1/webhook
    Secret:  ${SECRET}
    Content: application/json

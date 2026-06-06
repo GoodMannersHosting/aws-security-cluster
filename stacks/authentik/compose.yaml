@@ -119,6 +119,8 @@ services:
     depends_on:
       postgresql:
         condition: service_healthy
+      socket-proxy:
+        condition: service_started
     environment:
       AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:?set AUTHENTIK_SECRET_KEY}
       AUTHENTIK_ERROR_REPORTING__ENABLED: ${AUTHENTIK_ERROR_REPORTING__ENABLED:-false}
@@ -127,12 +129,12 @@ services:
       AUTHENTIK_POSTGRESQL__NAME: ${PG_DB:-authentik}
       AUTHENTIK_POSTGRESQL__PASSWORD: ${PG_PASS}
       AUTHENTIK_POSTGRESQL__SSLMODE: disable
+      DOCKER_HOST: tcp://socket-proxy:2375
     shm_size: 512mb
     user: root
     env_file:
       - .env
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
       - ${AUTHENTIK_DATA_ROOT:-/mnt/sec-hil-1-authentik}/data:/data
       - ${AUTHENTIK_DATA_ROOT:-/mnt/sec-hil-1-authentik}/media:/media
       - ${AUTHENTIK_DATA_ROOT:-/mnt/sec-hil-1-authentik}/certs:/certs

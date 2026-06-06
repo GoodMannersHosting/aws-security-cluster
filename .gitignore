@@ -19,6 +19,7 @@ stacks/doco-cd/sops_age_key.txt
 # Plaintext counterparts of committed SOPS files (encrypt → *.enc.* then commit)
 stacks/**/*.env.plain
 stacks/**/secrets.env
+*.env.enc
 
 # System Files
 .DS_Store

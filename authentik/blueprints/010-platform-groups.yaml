@@ -2,7 +2,7 @@ version: 1
 metadata:
   labels:
     blueprints.goauthentik.io/instantiate: "true"
-  name: Platform groups
+  name: 010 Platform groups
 entries:
   - id: platform-admin-group
     model: authentik_core.group

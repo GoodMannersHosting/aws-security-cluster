@@ -2,7 +2,7 @@ version: 1
 metadata:
   labels:
     blueprints.goauthentik.io/instantiate: "true"
-  name: Good Manners brand
+  name: 040 Good Manners brand
 entries:
   - id: goodmanners-brand
     model: authentik_brands.brand

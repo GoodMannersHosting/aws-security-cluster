@@ -2,7 +2,7 @@ version: 1
 metadata:
   labels:
     blueprints.goauthentik.io/instantiate: "true"
-  name: Doco-CD forward auth
+  name: 030 Doco-CD forward auth
 entries:
   - id: doco-cd-provider
     model: authentik_providers_proxy.proxyprovider
