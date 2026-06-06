@@ -13,4 +13,4 @@ Security platform automation for **Good Manners Hosting**. The active deployment
 
 **GitOps:** [`.doco-cd.yml`](.doco-cd.yml) defines deploy order. Stack secrets live in git as **`stacks/*/secrets.enc.env`** (SOPS + age). [stacks/doco-cd/install-prod.sh](stacks/doco-cd/install-prod.sh) bootstraps the VPS; day-two ops in [stacks/ops/](stacks/ops/).
 
-**OpenBao:** policies, roles, and OIDC in [bao/](bao/). File audit: [bao/enable-audit.sh](bao/enable-audit.sh) via [stacks/ops/apply-keeper-post-deploy.sh](stacks/ops/apply-keeper-post-deploy.sh).
+**OpenBao:** policies, roles, and OIDC in [bao/](bao/). File audit is declarative in [stacks/openbao/config/openbao.hcl.example](stacks/openbao/config/openbao.hcl.example); apply with [bao/enable-audit.sh](bao/enable-audit.sh).

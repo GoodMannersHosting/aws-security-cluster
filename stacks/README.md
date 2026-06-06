@@ -145,17 +145,7 @@ sudo /opt/hcloud-security-cluster/stacks/ops/verify-gitops.sh
 **`apply-keeper-post-deploy.sh`** runs:
 
 - **`harden-host.sh`** — unattended security upgrades, secret file modes, Docker `daemon.json`, sysctl, **Linux auditd** rules on sensitive paths
-- **`bao/enable-audit.sh`** — OpenBao **file** audit device (requires root token)
-
-For automated OpenBao audit on keeper, store a root token once:
-
-```bash
-sudo install -m 600 /dev/stdin /opt/stack-secrets/bao-admin.token
-# paste root token, Ctrl-D
-sudo /opt/hcloud-security-cluster/stacks/ops/apply-keeper-post-deploy.sh
-```
-
-Or: `export BAO_TOKEN=...` then run **`apply-keeper-post-deploy.sh`**.
+- **`bao/enable-audit.sh`** — adds **`audit "file"`** stanza to **`/opt/stacks/openbao/config/openbao.hcl`** and restarts OpenBao (no root token; OpenBao >= 2.3.2 blocks API audit enable)
 
 ### Off-site backups
 

@@ -16,9 +16,19 @@ storage "postgresql" {
   ha_enabled     = "true"
 }
 
-# Optional AWS KMS auto-unseal (requires /opt/stacks/openbao/aws/credentials)
 seal "awskms" {
   region                = "us-east-1"
   kms_key_id            = "arn:aws:kms:REGION:ACCOUNT:key/KEY_ID"
   shared_creds_filename = "/aws/credentials"
+}
+
+# Declarative file audit (required on OpenBao >= 2.3.2; API enable is blocked).
+audit "file" "keeper-data" {
+  description = "Request audit log on persistent data volume"
+  options {
+    file_path     = "/openbao/data/audit.log"
+    log_raw       = "false"
+    hmac_accessor = "true"
+    mode          = "0600"
+  }
 }
