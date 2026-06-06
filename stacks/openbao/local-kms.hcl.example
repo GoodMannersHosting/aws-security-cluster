@@ -1,0 +1,22 @@
+# Example after KMS auto-unseal is configured. Requires:
+# - IAM Roles Anywhere (or other) short-lived credentials visible to OpenBao
+# - AWS_EC2_METADATA_SERVICE_ENDPOINT pointing at a local Roles Anywhere helper (sidecar)
+# - AWS_REGION set
+
+listener "tcp" {
+  address     = "0.0.0.0:8200"
+  tls_disable = true
+}
+
+storage "postgresql" {
+  connection_url = "postgres://openbao:CHANGE_ME@hetzner_postgres:5432/openbao?sslmode=disable"
+}
+
+seal "awskms" {
+  region     = "us-east-1"
+  kms_key_id = "alias/your-openbao-key"
+}
+
+disable_mlock = true
+api_addr     = "https://openbao.example.com"
+cluster_addr = "https://openbao.example.com:8201"

@@ -1,0 +1,22 @@
+version: 1
+metadata:
+  labels:
+    blueprints.goauthentik.io/instantiate: "true"
+  name: Good Manners brand
+entries:
+  - id: goodmanners-brand
+    model: authentik_brands.brand
+    state: present
+    identifiers:
+      domain: auth.goodmanners.services
+    attrs:
+      domain: auth.goodmanners.services
+      default: true
+      branding_title: Good Manners
+      branding_favicon: https://goauthentik.io/img/icon.png
+      flow_authentication: !Find
+        [authentik_flows.flow, [slug, default-authentication-flow]]
+      flow_invalidation: !Find
+        [authentik_flows.flow, [slug, default-invalidation-flow]]
+      flow_user_settings: !Find
+        [authentik_flows.flow, [slug, default-user-settings-flow]]

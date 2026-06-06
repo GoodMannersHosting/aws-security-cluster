@@ -1,0 +1,7 @@
+# Optional: initial clone + deploy before the GitHub webhook is configured.
+# Copy to poll-config.yaml and uncomment POLL_CONFIG_FILE in compose.yaml.
+#
+# - url: https://github.com/GoodMannersHosting/hcloud-security-cluster.git
+#   reference: refs/heads/main
+#   interval: 300
+#   run_once: true

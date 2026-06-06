@@ -7,5 +7,18 @@
 # Directories
 node_modules
 
+# VPS stack secrets and ACME store
+stacks/*/.env
+stacks/**/acme.json
+stacks/**/config/local.hcl
+bao/config.env
+
+# age secret key for SOPS (Doco-CD); never commit
+stacks/doco-cd/sops_age_key.txt
+
+# Plaintext counterparts of committed SOPS files (encrypt → *.enc.* then commit)
+stacks/**/*.env.plain
+stacks/**/secrets.env
+
 # System Files
 .DS_Store

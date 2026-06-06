@@ -1,0 +1,23 @@
+version: 1
+metadata:
+  labels:
+    blueprints.goauthentik.io/instantiate: "true"
+  name: Platform groups
+entries:
+  - id: platform-admin-group
+    model: authentik_core.group
+    state: present
+    identifiers:
+      name: platform-admin
+    attrs:
+      name: platform-admin
+
+  - id: platform-admin-policy
+    model: authentik_policies_expression.expressionpolicy
+    state: present
+    identifiers:
+      name: platform-admin-only
+    attrs:
+      name: platform-admin-only
+      expression: |
+        return ak_is_group_member(request.user, name="platform-admin")

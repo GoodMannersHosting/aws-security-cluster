@@ -1,0 +1,18 @@
+# Merge with compose.yaml when using SOPS + age for encrypted compose/env files in git:
+#   docker compose -f compose.yaml -f compose.sops.yaml up -d
+# See https://github.com/kimdre/doco-cd/wiki/Encryption
+#
+# Create stacks/doco-cd/sops_age_key.txt first:
+#   age-keygen -o stacks/doco-cd/sops_age_key.txt
+# chmod 600 stacks/doco-cd/sops_age_key.txt
+
+services:
+  app:
+    environment:
+      SOPS_AGE_KEY_FILE: /run/secrets/sops_age_key
+    secrets:
+      - sops_age_key
+
+secrets:
+  sops_age_key:
+    file: ./sops_age_key.txt

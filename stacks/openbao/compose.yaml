@@ -1,0 +1,66 @@
+name: openbao
+
+services:
+  postgresql:
+    image: postgres:${POSTGRES_TAG:-18-alpine}
+    container_name: openbao-postgresql
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${PG_USER:?set PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASS:?set PG_PASS}
+      POSTGRES_DB: ${PG_DB:?set PG_DB}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - ${OPENBAO_POSTGRES_DATA:-/mnt/data/postgres/openbao}:/var/lib/postgresql
+    networks:
+      - openbao
+    security_opt:
+      - no-new-privileges:true
+
+  openbao:
+    image: ghcr.io/openbao/openbao-ubi:${OPENBAO_VERSION:-2}
+    container_name: openbao
+    restart: unless-stopped
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    command: ["server"]
+    cap_add:
+      - IPC_LOCK
+    security_opt:
+      - no-new-privileges:true
+    env_file:
+      - .env
+    environment:
+      BAO_ADDR: https://${OPENBAO_HOSTNAME}
+      BAO_API_ADDR: https://${OPENBAO_HOSTNAME}
+      AWS_REGION: ${AWS_REGION:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+    volumes:
+      - ${OPENBAO_CONFIG_DIR:-./config}:/openbao/config:ro
+      - ${OPENBAO_AWS_CREDS_DIR:-./aws}:/aws:ro
+      - ${OPENBAO_DATA_DIR:-/mnt/data/openbao}:/openbao/data
+    networks:
+      - openbao
+      - traefik
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik
+      - traefik.http.routers.openbao.rule=Host(`${OPENBAO_HOSTNAME}`)
+      - traefik.http.routers.openbao.entrypoints=websecure
+      - traefik.http.routers.openbao.tls=true
+      - traefik.http.routers.openbao.tls.certresolver=letsencrypt
+      - traefik.http.services.openbao.loadbalancer.server.port=8200
+
+networks:
+  openbao:
+    driver: bridge
+  traefik:
+    external: true

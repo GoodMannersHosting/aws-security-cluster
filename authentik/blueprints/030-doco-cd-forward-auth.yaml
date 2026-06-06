@@ -1,0 +1,53 @@
+version: 1
+metadata:
+  labels:
+    blueprints.goauthentik.io/instantiate: "true"
+  name: Doco-CD forward auth
+entries:
+  - id: doco-cd-provider
+    model: authentik_providers_proxy.proxyprovider
+    state: present
+    identifiers:
+      name: doco-cd-forward-auth
+    attrs:
+      name: doco-cd-forward-auth
+      mode: forward_single
+      external_host: https://doco-cd.goodmanners.services
+      intercept_header_auth: true
+      authorization_flow: !Find
+        [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+      invalidation_flow: !Find
+        [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+
+  - id: doco-cd-application
+    model: authentik_core.application
+    state: present
+    identifiers:
+      slug: doco-cd
+    attrs:
+      name: Doco-CD
+      slug: doco-cd
+      meta_launch_url: https://doco-cd.goodmanners.services
+      policy_engine_mode: any
+      provider: !KeyOf doco-cd-provider
+
+  - id: doco-cd-admin-binding
+    model: authentik_policies.policybinding
+    state: present
+    identifiers:
+      order: 0
+      target: !Find [authentik_core.application, [slug, doco-cd]]
+      policy: !Find
+        [authentik_policies_expression.expressionpolicy, [name, platform-admin-only]]
+    attrs:
+      enabled: true
+      order: 0
+
+  - id: embedded-outpost-doco-cd
+    model: authentik_outposts.outpost
+    state: present
+    identifiers:
+      name: authentik Embedded Outpost
+    attrs:
+      providers:
+        - !KeyOf doco-cd-provider

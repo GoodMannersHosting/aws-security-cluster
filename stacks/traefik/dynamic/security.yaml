@@ -1,0 +1,35 @@
+tls:
+  options:
+    default:
+      minVersion: VersionTLS12
+      sniStrict: true
+      curvePreferences:
+        - CurveP521
+        - CurveP384
+      alpnProtocols:
+        - h2
+        - http/1.1
+      disableSessionTickets: true
+
+http:
+  middlewares:
+    security-headers:
+      headers:
+        frameDeny: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: strict-origin-when-cross-origin
+        permissionsPolicy: "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+
+    in-flight:
+      inFlightReq:
+        amount: 100
+
+    chain-default:
+      chain:
+        middlewares:
+          - security-headers
+          - in-flight
