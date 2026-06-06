@@ -44,28 +44,18 @@ jobs:
           bao version
 
       - name: Authenticate to OpenBao (GitHub OIDC)
-        env:
-          JWT_AUDIENCE: ${{ env.GITHUB_JWT_AUDIENCE }}
-        run: |
-          set -euo pipefail
-          OIDC_TOKEN="$(
-            curl -fsSL \
-              -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
-              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${JWT_AUDIENCE}" \
-              | jq -r .value
-          )"
-          BAO_TOKEN="$(
-            curl -fsSL -X POST \
-              -d "{\"role\":\"${JWT_ROLE}\",\"jwt\":\"${OIDC_TOKEN}\"}" \
-              "${BAO_ADDR}/v1/auth/${GITHUB_JWT_MOUNT}/login" \
-              | jq -r .auth.client_token
-          )"
-          [[ -n "${BAO_TOKEN}" && "${BAO_TOKEN}" != "null" ]] \
-            || { echo "OpenBao JWT login failed" >&2; exit 1; }
-          echo "::add-mask::${BAO_TOKEN}"
-          echo "BAO_TOKEN=${BAO_TOKEN}" >> "${GITHUB_ENV}"
+        uses: hashicorp/vault-action@v3
+        with:
+          url: ${{ env.BAO_ADDR }}
+          method: jwt
+          path: ${{ env.GITHUB_JWT_MOUNT }}
+          role: ${{ env.JWT_ROLE }}
+          jwtGithubAudience: ${{ env.GITHUB_JWT_AUDIENCE }}
+          exportToken: true
+          exportEnv: false
 
       - name: Apply policies and roles
         env:
           AUTHENTIK_CLIENT_ID: ${{ secrets.AUTHENTIK_CLIENT_ID }}
+          BAO_TOKEN: ${{ env.VAULT_TOKEN }}
         run: bash bao/sync-from-git.sh
