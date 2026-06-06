@@ -31,6 +31,15 @@ env_files:
   - secrets.enc.env
 
 ---
+name: hcloud-alloy
+working_dir: stacks/alloy
+webhook_filter: ^refs/heads/main$
+compose_files:
+  - compose.yaml
+env_files:
+  - secrets.enc.env
+
+---
 name: hcloud-doco-cd
 working_dir: stacks/doco-cd
 webhook_filter: ^refs/heads/main$

@@ -14,7 +14,7 @@ check_ctn() {
 }
 
 for c in traefik doco-cd authentik-server authentik-worker authentik-postgresql \
-  openbao openbao-postgresql; do
+  openbao openbao-postgresql alloy; do
   check_ctn "${c}"
 done
 

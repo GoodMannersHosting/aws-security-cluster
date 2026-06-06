@@ -77,7 +77,7 @@ for legacy in \
   fi
 done
 
-for stack in traefik authentik openbao doco-cd; do
+for stack in traefik authentik openbao alloy doco-cd; do
   enc="${DOCO_CLONE}/stacks/${stack}/secrets.enc.env"
   if [[ -f "${enc}" ]]; then
     ok "encrypted env in git clone: stacks/${stack}/secrets.enc.env"

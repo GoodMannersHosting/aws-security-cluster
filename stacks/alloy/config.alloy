@@ -1,0 +1,71 @@
+// Grafana Alloy on keeper: host + Traefik metrics, Docker logs -> remote backends.
+// Set PROMETHEUS_REMOTE_WRITE_* and LOKI_PUSH_* in secrets.enc.env (Grafana Cloud or self-hosted).
+
+prometheus.exporter.unix "host" {
+  include_exporter_metrics = true
+}
+
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "docker_logs" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    target_label  = "compose_project"
+  }
+}
+
+loki.source.docker "docker" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.relabel.docker_logs.output
+  forward_to    = [loki.write.remote.receiver]
+  relabel_rules = discovery.relabel.docker_logs.rules
+  labels        = {"host" = "keeper", "cluster" = "keeper"}
+}
+
+loki.write "remote" {
+  endpoint {
+    url = sys.env("LOKI_PUSH_URL")
+
+    basic_auth {
+      username = sys.env("LOKI_USERNAME")
+      password = sys.env("LOKI_PASSWORD")
+    }
+  }
+}
+
+prometheus.scrape "host" {
+  targets         = prometheus.exporter.unix.host.targets
+  forward_to      = [prometheus.remote_write.remote.receiver]
+  scrape_interval = "30s"
+}
+
+prometheus.scrape "traefik" {
+  targets = [{
+    __address__ = "traefik:8082",
+    job         = "traefik",
+  }]
+  metrics_path    = "/metrics"
+  forward_to      = [prometheus.remote_write.remote.receiver]
+  scrape_interval = "30s"
+}
+
+prometheus.remote_write "remote" {
+  endpoint {
+    url = sys.env("PROMETHEUS_REMOTE_WRITE_URL")
+
+    basic_auth {
+      username = sys.env("PROMETHEUS_REMOTE_WRITE_USERNAME")
+      password = sys.env("PROMETHEUS_REMOTE_WRITE_PASSWORD")
+    }
+  }
+}

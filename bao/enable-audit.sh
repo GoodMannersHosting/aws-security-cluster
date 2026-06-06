@@ -73,17 +73,22 @@ reload_openbao() {
   die "openbao did not become healthy after restart"
 }
 
+health_ok() {
+  curl -fsS "${HEALTH_URL}" >/dev/null 2>&1
+}
+
 main() {
-  local changed=0
-  if ensure_audit_config; then
-    changed=1
-  fi
   prepare_audit_log
-  if [[ "${changed}" -eq 1 && "${RESTART}" == "1" ]]; then
+  local changed=0
+  ensure_audit_config && changed=1 || true
+  if [[ "${RESTART}" != "1" ]]; then
+    log "done (RESTART=0)"
+    return 0
+  fi
+  if [[ "${changed}" -eq 1 ]] || ! health_ok; then
     reload_openbao
-  elif [[ "${changed}" -eq 0 && "${RESTART}" == "1" ]]; then
-    # stanza present but permissions may still block unseal
-    reload_openbao
+  else
+    log "openbao healthy; no restart needed"
   fi
   log "done"
 }

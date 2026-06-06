@@ -42,6 +42,7 @@ Doco-CD applies stacks in this order (see `.doco-cd.yml`):
 2. **authentik** — Postgres, server, worker (via socket-proxy), embedded outpost routes
 3. **openbao** — Postgres, AWS KMS auto-unseal
 4. **doco-cd** — self-managed GitOps controller
+5. **alloy** — metrics/logs collector (remote_write + Loki push; no local Grafana)
 
 After Doco-CD is up, use **`stacks/ops/reconcile-gitops.sh`** (or push to `main`). Do not run compose from `/opt/stacks/*/compose.yaml`.
 
@@ -119,6 +120,8 @@ docker restart authentik-worker
 | `harden-host.sh` | Unattended upgrades, permissions, Docker/sysctl/auditd |
 | `healthcheck.sh` | Container + HTTPS smoke checks (exit non-zero on failure) |
 | `backup.sh` | Postgres dumps + data tarballs; S3 upload when configured |
+| `restore.sh` | Restore from local backup dir or S3 stamp |
+| `BACKUP-RESTORE.md` | Backup contents, S3 layout, restore procedures |
 | `install-cron.sh` | Cron: backup 03:00 UTC, health hourly, gitops verify :15 |
 | `fix-blueprints.sh` | Orphan blueprint cleanup |
 
@@ -151,6 +154,28 @@ sudo /opt/hcloud-security-cluster/stacks/ops/verify-gitops.sh
 
 Postgres dumps upload via **IAM Roles Anywhere** (see **`backup.env`** on keeper, **`backup.env.example`**). AWS CLI uses `credential_process` with `aws_signing_helper` and **`stacks/ops/aws/keeper.crt`**. CA private key stays in **`/opt/stack-secrets/keeper-ra-ca.key`**.
 
+Full backup/restore guide: **[stacks/ops/BACKUP-RESTORE.md](ops/BACKUP-RESTORE.md)**.
+
+### Grafana Alloy (collector only)
+
+**`stacks/alloy`** runs [Grafana Alloy](https://grafana.com/docs/alloy/) on the `traefik` network. It does **not** run Grafana, Loki, or Prometheus on keeper.
+
+- Host metrics (`prometheus.exporter.unix`)
+- Traefik Prometheus metrics (`traefik:8082`, requires Traefik `metrics` entrypoint)
+- Docker container logs → **Loki push URL**
+- Metrics → **Prometheus remote_write URL**
+
+Configure endpoints in **`stacks/alloy/secrets.enc.env`** (from **`stacks/alloy/.env.example`**). Typical destination: **Grafana Cloud** (separate Prometheus and Loki endpoints + API tokens).
+
+```bash
+sudo mkdir -p /opt/stacks/alloy
+sudo cp stacks/alloy/.env.example /opt/stacks/alloy/.env
+# edit with Grafana Cloud (or self-hosted) URLs and credentials
+sudo stacks/ops/encrypt-stack-secrets.sh
+```
+
+Alloy UI listens on **127.0.0.1:12345** inside the container only (not exposed via Traefik).
+
 ## Security notes
 
 - Authentik **worker** uses **`DOCKER_HOST=tcp://socket-proxy:2375`** (no raw docker.sock).
@@ -158,6 +183,8 @@ Postgres dumps upload via **IAM Roles Anywhere** (see **`backup.env`** on keeper
 - Traefik dashboard and Doco-CD UI: Authentik forward auth (`platform-admin`); webhook path rate-limited only.
 - OpenBao ingress: Traefik rate limiting.
 - **`stacks/ops/fix-fail2ban-ssh.sh`** — avoid SSH lockout; maintain **`admin-ips.txt`**.
+
+- **Alloy** mounts **docker.sock** read-only for log discovery (same class of access as Doco-CD; no public UI).
 
 OpenBao policy and OIDC files: repo root **`bao/`**.
 
