@@ -14,5 +14,3 @@ Security platform automation for **Good Manners Hosting**. The active deployment
 **GitOps:** [`.doco-cd.yml`](.doco-cd.yml) defines deploy order; [stacks/doco-cd/install-prod.sh](stacks/doco-cd/install-prod.sh) bootstraps the VPS.
 
 **OpenBao:** policies, roles, and OIDC bootstrap in [bao/](bao/).
-
-The `infrastructure/` directory holds legacy **AWS Pulumi** stacks (ECS, Aurora, NLB) for reference; they are not used on keeper.

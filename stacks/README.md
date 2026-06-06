@@ -117,10 +117,6 @@ Requires **`age`** and **`sops`** on the host for encrypted env backups. Doco-CD
 - Run **`stacks/ops/harden-host.sh`** on the host for unattended upgrades, permission fixes, Docker/sysctl/auditd.
 - Never commit **`stacks/*/.env`**, **`bao/config.env`**, or **`stacks/doco-cd/sops_age_key.txt`**.
 
-## Legacy AWS automation
-
-Pulumi under **`infrastructure/`** is reference only for the Hetzner deployment. See [`.github/readme.md`](../.github/readme.md) for the AWS stack overview.
-
 OpenBao policy and OIDC files: repo root **`bao/`**.
 
 ## Dependency updates (Renovate)
@@ -130,7 +126,7 @@ OpenBao policy and OIDC files: repo root **`bao/`**.
 - **`config:best-practices`** — lock file maintenance, npm release-age guard, config migration
 - **SHA digest pinning** on all Docker images (`pinDigests`) for immutable deploys
 - **Major updates enabled** — open PRs for manual review; **minor/patch/digest automerge** via GitHub platform automerge
-- **Grouped PRs** per stack (`stack-authentik`, `stack-openbao`, …) and per Pulumi project
+- **Grouped PRs** per Compose stack (`stack-authentik`, `stack-openbao`, …)
 - **Dependency dashboard** — track pending updates from the Renovate issue
 - **Semantic commits** — `chore(deps): …` to match conventional commits on `main`
 

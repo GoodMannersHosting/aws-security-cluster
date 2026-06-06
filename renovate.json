@@ -69,34 +69,6 @@
       "versioning": "regex:^(?<major>\\d{4})\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?<compatibility>.*)?$"
     },
     {
-      "description": "Group Pulumi npm dependencies per stack",
-      "matchManagers": ["npm"],
-      "matchFileNames": ["infrastructure/core-aws/**"],
-      "groupName": "pulumi core-aws",
-      "groupSlug": "pulumi-core-aws"
-    },
-    {
-      "description": "Group Pulumi npm dependencies per stack",
-      "matchManagers": ["npm"],
-      "matchFileNames": ["infrastructure/authentik-aws/**"],
-      "groupName": "pulumi authentik-aws",
-      "groupSlug": "pulumi-authentik-aws"
-    },
-    {
-      "description": "Group Pulumi npm dependencies per stack",
-      "matchManagers": ["npm"],
-      "matchFileNames": ["infrastructure/openbao-aws/**"],
-      "groupName": "pulumi openbao-aws",
-      "groupSlug": "pulumi-openbao-aws"
-    },
-    {
-      "description": "Group Pulumi npm dependencies per stack",
-      "matchManagers": ["npm"],
-      "matchFileNames": ["infrastructure/emergency-bastion/**"],
-      "groupName": "pulumi emergency-bastion",
-      "groupSlug": "pulumi-emergency-bastion"
-    },
-    {
       "description": "Group container updates per Compose stack",
       "matchManagers": ["docker-compose", "custom.regex"],
       "matchFileNames": ["stacks/traefik/**"],
