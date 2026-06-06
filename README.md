@@ -1,9 +1,18 @@
-# hcloud-security-cluster
+# aws-security-cluster
 
-Security-focused platform automation. **Current target:** a single Hetzner VPS running Docker Compose stacks (Traefik, PostgreSQL, Authentik, OpenBao) with persistent data on a host volume such as `/mnt/data`.
+Security platform automation for **Good Manners Hosting**. The active deployment is a single Hetzner VPS (**keeper.goodmanners.services**) running Docker Compose: Traefik ingress, Authentik (GitHub SSO), OpenBao (AWS KMS auto-unseal), and [Doco-CD](https://github.com/kimdre/doco-cd) GitOps.
 
-Start with [stacks/README.md](stacks/README.md). Optional GitOps for those stacks: [Doco-CD](https://github.com/kimdre/doco-cd) via [`.doco-cd.yml`](.doco-cd.yml) and [stacks/doco-cd/](stacks/doco-cd/).
+| Hostname | Service |
+|----------|---------|
+| `auth.goodmanners.services` | Authentik |
+| `keeper.goodmanners.services` | OpenBao |
+| `traefik.goodmanners.services` | Traefik dashboard |
+| `doco-cd.goodmanners.services` | Doco-CD (Authentik forward auth on UI only) |
 
-The `infrastructure/` directory still contains legacy **AWS Pulumi** stacks (ECS, Aurora, NLB) for reference or migration; it is not required for the VPS layout.
+**Start here:** [stacks/README.md](stacks/README.md)
 
-OpenBao policy examples live in [bao/](bao/).
+**GitOps:** [`.doco-cd.yml`](.doco-cd.yml) defines deploy order; [stacks/doco-cd/install-prod.sh](stacks/doco-cd/install-prod.sh) bootstraps the VPS.
+
+**OpenBao:** policies, roles, and OIDC bootstrap in [bao/](bao/).
+
+The `infrastructure/` directory holds legacy **AWS Pulumi** stacks (ECS, Aurora, NLB) for reference; they are not used on keeper.
