@@ -22,6 +22,27 @@ ensure_host_clone_remote() {
   fi
 }
 
+migrate_legacy_doco_project() {
+  local dir="${CLONE_DIR}/stacks/doco-cd"
+  local env_file="${STACKS}/doco-cd/.env"
+  local has_legacy has_gitops
+  has_legacy="$(docker compose ls --format json 2>/dev/null \
+    | jq -r '.[] | select(.Name=="doco-cd") | .Name' 2>/dev/null || true)"
+  has_gitops="$(docker compose ls --format json 2>/dev/null \
+    | jq -r '.[] | select(.Name=="hcloud-doco-cd") | .Name' 2>/dev/null || true)"
+  [[ -n "${has_legacy}" && -z "${has_gitops}" ]] || return 0
+  log "migrate compose project doco-cd -> hcloud-doco-cd (preserve data volume)"
+  local args=(-f compose.yaml)
+  [[ -f "${STACKS}/doco-cd/sops_age_key.txt" ]] && args+=(-f compose.sops.yaml)
+  (
+    cd "${dir}"
+    docker compose -p doco-cd --env-file "${env_file}" "${args[@]}" \
+      down --remove-orphans --timeout 30
+    docker compose -p hcloud-doco-cd --env-file "${env_file}" "${args[@]}" up -d
+  )
+  sleep 3
+}
+
 reset_doco_clone_to_main() {
   [[ -d "${DOCO_CLONE}/.git" ]] || {
     log "Doco-CD deploy clone not present yet (created on first deploy)"
@@ -108,6 +129,7 @@ git -C "${CLONE_DIR}" fetch origin "${BRANCH}"
 git -C "${CLONE_DIR}" checkout "${BRANCH}"
 git -C "${CLONE_DIR}" pull --ff-only origin "${BRANCH}"
 
+migrate_legacy_doco_project
 reset_doco_clone_to_main
 
 install_sops_age_key() {

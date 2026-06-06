@@ -1,4 +1,6 @@
-name: doco-cd
+# Project name must match .doco-cd.yml (hcloud-doco-cd) so GitOps self-deploy
+# does not fight a separate manual compose project.
+name: hcloud-doco-cd
 
 services:
   app:
@@ -51,3 +53,5 @@ networks:
 
 volumes:
   doco_cd_data:
+    # Fixed name: survives project rename doco-cd -> hcloud-doco-cd
+    name: doco-cd_doco_cd_data

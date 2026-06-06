@@ -65,9 +65,10 @@ done
 
 while read -r project configs; do
   [[ -z "${project}" ]] && continue
-  case "${project}" in
-    doco-cd|hcloud-doco-cd) continue ;;
-  esac
+  if [[ "${project}" == "doco-cd" ]]; then
+    warn "legacy compose project doco-cd still present (expected hcloud-doco-cd)"
+    continue
+  fi
   if grep -q "${STACKS}/" <<<"${configs}" && grep -q 'compose' <<<"${configs}"; then
     warn "project ${project} uses /opt/stacks compose: ${configs}"
   fi

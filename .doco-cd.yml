@@ -29,5 +29,12 @@ compose_files:
 env_files:
   - /opt/stacks/openbao/.env
 
-# Doco-CD is bootstrapped manually (stacks/ops/finish-gitops.sh). Do not list
-# hcloud-doco-cd here: container_name is fixed and self-deploy always conflicts.
+---
+name: hcloud-doco-cd
+working_dir: stacks/doco-cd
+webhook_filter: ^refs/heads/main$
+compose_files:
+  - compose.yaml
+  - compose.sops.yaml
+env_files:
+  - /opt/stacks/doco-cd/.env
