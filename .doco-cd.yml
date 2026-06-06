@@ -1,0 +1,39 @@
+# Production (keeper.goodmanners.services): compose files and secrets under /opt/stacks/.
+# Doco-CD clones this repo; env_files point at host .env files (see stacks/doco-cd/install-prod.sh).
+# MAX_CONCURRENT_DEPLOYMENTS=1 serializes deploys in list order.
+
+---
+name: hcloud-traefik
+working_dir: stacks/traefik
+webhook_filter: ^refs/heads/main$
+compose_files:
+  - docker-compose.yaml
+env_files:
+  - /opt/stacks/traefik/.env
+
+---
+name: hcloud-authentik
+working_dir: stacks/authentik
+webhook_filter: ^refs/heads/main$
+compose_files:
+  - compose.yaml
+env_files:
+  - /opt/stacks/authentik/.env
+
+---
+name: hcloud-openbao
+working_dir: stacks/openbao
+webhook_filter: ^refs/heads/main$
+compose_files:
+  - compose.yaml
+env_files:
+  - /opt/stacks/openbao/.env
+
+---
+name: hcloud-doco-cd
+working_dir: stacks/doco-cd
+webhook_filter: ^refs/heads/main$
+compose_files:
+  - compose.yaml
+env_files:
+  - /opt/stacks/doco-cd/.env

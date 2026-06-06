@@ -1,0 +1,20 @@
+# Copy to ${OPENBAO_CONFIG_PATH}/local.hcl (e.g. /mnt/data/openbao/config/local.hcl).
+# Do not commit real credentials or seal keys.
+
+listener "tcp" {
+  address     = "0.0.0.0:8200"
+  tls_disable = true
+}
+
+storage "postgresql" {
+  connection_url = "postgres://openbao:CHANGE_ME@hetzner_postgres:5432/openbao?sslmode=disable"
+}
+
+# Initial bootstrap: use shamir. After migration to AWS KMS, replace with seal "awskms" { ... }
+seal "shamir" {}
+
+disable_mlock = true
+
+# Public URL clients use (matches Traefik hostname + TLS)
+api_addr     = "https://openbao.example.com"
+cluster_addr = "https://openbao.example.com:8201"

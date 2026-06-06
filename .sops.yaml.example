@@ -1,0 +1,10 @@
+# Copy to .sops.yaml in the repo root and replace AGE_PUBLIC_KEY with:
+#   age-keygen -y stacks/doco-cd/sops_age_key.txt
+# Commit .sops.yaml (public recipients only; never commit the age secret key).
+#
+# https://github.com/getsops/sops
+# https://github.com/kimdre/doco-cd/wiki/Encryption
+
+creation_rules:
+  - path_regex: (?i)^stacks/.+\.enc\.(env|yaml|yml|json)$
+    age: AGE_PUBLIC_KEY

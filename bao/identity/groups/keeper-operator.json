@@ -1,0 +1,5 @@
+{
+  "name": "keeper-operator",
+  "type": "external",
+  "policies": "operator"
+}

@@ -1,0 +1,24 @@
+# Copy to /opt/stacks/openbao/config/openbao.hcl on the server (never commit secrets).
+ui = true
+
+api_addr     = "https://keeper.goodmanners.services"
+cluster_addr = "http://openbao:8201"
+
+listener "tcp" {
+  address         = "0.0.0.0:8200"
+  cluster_address = "0.0.0.0:8201"
+  tls_disable     = true
+}
+
+storage "postgresql" {
+  connection_url = "postgresql://USER:PASSWORD@postgresql:5432/openbao?sslmode=disable"
+  table          = "openbao_kv_store"
+  ha_enabled     = "true"
+}
+
+# Optional AWS KMS auto-unseal (requires /opt/stacks/openbao/aws/credentials)
+seal "awskms" {
+  region                = "us-east-1"
+  kms_key_id            = "arn:aws:kms:REGION:ACCOUNT:key/KEY_ID"
+  shared_creds_filename = "/aws/credentials"
+}

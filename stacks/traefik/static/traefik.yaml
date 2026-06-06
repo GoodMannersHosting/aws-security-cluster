@@ -1,0 +1,95 @@
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+log:
+  level: INFO
+  format: json
+
+accessLog:
+  format: json
+  bufferingSize: 100
+  fields:
+    defaultMode: keep
+    names:
+      ClientUsername: drop
+      RequestHost: keep
+      RequestMethod: keep
+      RequestPath: keep
+      RequestProtocol: keep
+      RequestAddr: keep
+      RequestCount: keep
+      DownstreamStatus: keep
+      Duration: keep
+      OriginStatus: keep
+      RouterName: keep
+      ServiceName: keep
+  filePath: /var/log/traefik/access.log
+
+api:
+  dashboard: true
+  debug: false
+  insecure: false
+
+ping: {}
+
+entryPoints:
+  web:
+    address: :80
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+      encodeQuerySemicolons: true
+      sanitizePath: true
+
+  websecure:
+    address: :443
+    http:
+      tls:
+        certResolver: letsencrypt
+        options: default
+      encodeQuerySemicolons: true
+      sanitizePath: true
+    transport:
+      respondingTimeouts:
+        readTimeout: 15s
+        writeTimeout: 30s
+        idleTimeout: 90s
+      lifeCycle:
+        requestAcceptGraceTimeout: 10s
+        graceTimeOut: 30s
+    forwardedHeaders:
+      trustedIPs:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+        - 127.0.0.1/32
+    proxyProtocol:
+      trustedIPs:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+        - 127.0.0.1/32
+
+providers:
+  docker:
+    endpoint: tcp://socket-proxy:2375
+    exposedByDefault: false
+    network: traefik
+    watch: true
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: ${ACME_EMAIL}
+      storage: /acme/acme.json
+      httpChallenge:
+        entryPoint: web
+      # ECC account key (Traefik default may differ by version)
+      keyType: EC256

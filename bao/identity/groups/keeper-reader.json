@@ -1,0 +1,5 @@
+{
+  "name": "keeper-reader",
+  "type": "external",
+  "policies": "reader"
+}
