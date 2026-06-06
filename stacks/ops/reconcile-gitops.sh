@@ -68,11 +68,13 @@ trigger_main_webhook() {
     | openssl dgst -sha256 -hmac "${WEBHOOK_SECRET}" \
     | awk '{print "sha256="$2}')"
   log "trigger Doco-CD deploy for ${ref} @ ${sha:0:7}"
-  curl -sf -X POST "https://${host}/v1/webhook?wait=true" \
+  if ! curl -sf -X POST "https://${host}/v1/webhook?wait=true" \
     -H "X-GitHub-Event: push" \
     -H "Content-Type: application/json" \
     -H "X-Hub-Signature-256: ${sig}" \
-    --data "${payload}" >/dev/null
+    --data "${payload}" >/dev/null; then
+    log "webhook deploy returned non-success (check: docker logs doco-cd)"
+  fi
 }
 
 log "Update host clone ${CLONE_DIR}"
