@@ -27,6 +27,14 @@ services:
       - traefik.http.routers.doco-cd-webhook.priority=100
       - "traefik.http.routers.doco-cd-webhook.middlewares=ratelimit-webhook@file,security-headers@file"
       - traefik.http.routers.doco-cd-webhook.service=doco-cd
+      # Health checks and probes cannot pass Authentik forward auth.
+      - traefik.http.routers.doco-cd-health.rule=Host(`${DOCO_CD_HOSTNAME}`) && PathPrefix(`/v1/health`)
+      - traefik.http.routers.doco-cd-health.entrypoints=websecure
+      - traefik.http.routers.doco-cd-health.tls=true
+      - traefik.http.routers.doco-cd-health.tls.certresolver=letsencrypt
+      - traefik.http.routers.doco-cd-health.priority=100
+      - "traefik.http.routers.doco-cd-health.middlewares=security-headers@file"
+      - traefik.http.routers.doco-cd-health.service=doco-cd
       - traefik.http.routers.doco-cd.rule=Host(`${DOCO_CD_HOSTNAME}`)
       - traefik.http.routers.doco-cd.entrypoints=websecure
       - traefik.http.routers.doco-cd.tls=true

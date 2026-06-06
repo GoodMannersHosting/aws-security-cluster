@@ -16,6 +16,7 @@ services:
       NETWORKS: 1
       SERVICES: 1
       TASKS: 1
+      INFO: 1
       POST: 0
       AUTH: 0
       BUILD: 0

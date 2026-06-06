@@ -1,0 +1,5 @@
+# Copy to /opt/stacks/ops/admin-ips.txt on keeper (chmod 600).
+# IPs listed here are added to fail2ban ignoreip for sshd.
+#
+# 203.0.113.10/32
+# 198.51.100.0/24
