@@ -1,0 +1,6 @@
+# Cold-start overlay only (install-prod.sh). GitOps deploy uses secrets.enc.env
+# from the clone; Doco-CD decrypts those during webhook deploy.
+services:
+  app:
+    env_file:
+      - /opt/stacks/doco-cd/.env

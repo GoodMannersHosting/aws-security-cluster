@@ -46,7 +46,7 @@ ensure_host_clone_remote() {
 }
 
 migrate_legacy_doco_project() {
-  local dir env_file vol="doco-cd_doco_cd_data"
+  local dir vol="doco-cd_doco_cd_data"
   local has_legacy has_gitops
   has_legacy="$(docker compose ls --format json 2>/dev/null \
     | jq -r '.[] | select(.Name=="doco-cd") | .Name' 2>/dev/null || true)"
@@ -54,15 +54,17 @@ migrate_legacy_doco_project() {
     | jq -r '.[] | select(.Name=="hcloud-doco-cd") | .Name' 2>/dev/null || true)"
   [[ -n "${has_legacy}" && -z "${has_gitops}" ]] || return 0
   dir="$(doco_compose_dir)"
-  env_file="${STACKS}/doco-cd/.env"
   log "migrate compose project doco-cd -> hcloud-doco-cd (preserve data volume)"
   docker volume inspect "${vol}" >/dev/null 2>&1 || docker volume create "${vol}" >/dev/null
   mapfile -t args < <(doco_compose_args)
+  local install_args=("${args[@]}")
+  [[ -f "${dir}/compose.install.yaml" ]] && install_args+=(-f compose.install.yaml)
   (
     cd "${dir}"
-    docker compose -p doco-cd --env-file "${env_file}" "${args[@]}" \
-      down --remove-orphans --timeout 30
-    docker compose -p hcloud-doco-cd --env-file "${env_file}" "${args[@]}" up -d
+    docker compose -p doco-cd --env-file "${STACKS}/doco-cd/.env" \
+      "${install_args[@]}" down --remove-orphans --timeout 30
+    docker compose -p hcloud-doco-cd --env-file "${STACKS}/doco-cd/.env" \
+      "${install_args[@]}" up -d
   )
   sleep 3
 }

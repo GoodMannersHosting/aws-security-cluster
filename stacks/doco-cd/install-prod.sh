@@ -70,6 +70,19 @@ if command -v sops >/dev/null 2>&1 && command -v age-keygen >/dev/null 2>&1; the
     "${OPS_DIR}/setup-sops.sh"
 fi
 
+log "Ensure off-site backup config stubs"
+install -d -m 0700 "${OPS_DIR}/aws"
+if [[ ! -f "${OPS_DIR}/backup.env" ]]; then
+  cp "${OPS_DIR}/backup.env.example" "${OPS_DIR}/backup.env"
+  chmod 600 "${OPS_DIR}/backup.env"
+  log "Created ${OPS_DIR}/backup.env — set BACKUP_S3_BUCKET and aws/credentials"
+fi
+if [[ ! -f "${OPS_DIR}/aws/credentials" ]]; then
+  cp "${OPS_DIR}/aws/credentials.example" "${OPS_DIR}/aws/credentials"
+  chmod 600 "${OPS_DIR}/aws/credentials"
+  log "Created ${OPS_DIR}/aws/credentials — add backup IAM user keys"
+fi
+
 mkdir -p "${STACKS}/doco-cd"
 if [[ ! -f "${DOCO_ENV}" ]]; then
   cp "${CLONE_DIR}/stacks/doco-cd/.env.example" "${DOCO_ENV}"
@@ -109,10 +122,7 @@ docker volume inspect doco-cd_doco_cd_data >/dev/null 2>&1 \
   || docker volume create doco-cd_doco_cd_data >/dev/null
 (
   cd "${CLONE_DIR}/stacks/doco-cd"
-  COMPOSE_ARGS=(-f compose.yaml)
-  if [[ -f sops_age_key.txt ]]; then
-    COMPOSE_ARGS+=(-f compose.sops.yaml)
-  fi
+  COMPOSE_ARGS=(-f compose.yaml -f compose.sops.yaml -f compose.install.yaml)
   docker compose -p hcloud-doco-cd --env-file "${DOCO_ENV}" \
     "${COMPOSE_ARGS[@]}" up -d
 )
