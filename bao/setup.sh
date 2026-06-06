@@ -116,6 +116,7 @@ main() {
   write_group_aliases
   seed_secret_paths
   echo "done. test: bao login -method=oidc role=reader"
+  echo "      CI:   run setup-github-jwt.sh once, then push bao/ changes to main"
 }
 
 main "$@"

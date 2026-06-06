@@ -1,0 +1,66 @@
+name: Sync OpenBao policies
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "bao/policies/**"
+      - "bao/roles/**"
+      - "bao/jwt/**"
+      - "bao/sync-from-git.sh"
+      - ".github/workflows/bao-sync.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: bao-sync-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  BAO_ADDR: https://keeper.goodmanners.services
+  GITHUB_JWT_MOUNT: jwt
+  GITHUB_JWT_AUDIENCE: https://github.com/GoodMannersHosting
+  GITHUB_REPOSITORY: GoodMannersHosting/aws-security-cluster
+  GITHUB_REF: refs/heads/main
+  JWT_ROLE: github-actions-ci
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install OpenBao CLI
+        run: |
+          curl -fsSL https://get.openbao.org/install.sh | sudo bash
+          bao version
+
+      - name: Authenticate to OpenBao (GitHub OIDC)
+        env:
+          JWT_AUDIENCE: ${{ env.GITHUB_JWT_AUDIENCE }}
+        run: |
+          set -euo pipefail
+          OIDC_TOKEN="$(
+            curl -fsSL \
+              -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${JWT_AUDIENCE}" \
+              | jq -r .value
+          )"
+          BAO_TOKEN="$(
+            curl -fsSL -X POST \
+              -d "{\"role\":\"${JWT_ROLE}\",\"jwt\":\"${OIDC_TOKEN}\"}" \
+              "${BAO_ADDR}/v1/auth/${GITHUB_JWT_MOUNT}/login" \
+              | jq -r .auth.client_token
+          )"
+          [[ -n "${BAO_TOKEN}" && "${BAO_TOKEN}" != "null" ]] \
+            || { echo "OpenBao JWT login failed" >&2; exit 1; }
+          echo "::add-mask::${BAO_TOKEN}"
+          echo "BAO_TOKEN=${BAO_TOKEN}" >> "${GITHUB_ENV}"
+
+      - name: Apply policies and roles
+        env:
+          AUTHENTIK_CLIENT_ID: ${{ secrets.AUTHENTIK_CLIENT_ID }}
+        run: bash bao/sync-from-git.sh
