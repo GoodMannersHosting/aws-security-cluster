@@ -28,7 +28,7 @@ http:
       inFlightReq:
         amount: 100
 
-    chain-default:
+    default-chain:
       chain:
         middlewares:
           - security-headers
