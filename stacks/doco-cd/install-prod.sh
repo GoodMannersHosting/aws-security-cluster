@@ -82,9 +82,29 @@ if [[ ! -f "${DOCO_ENV}" ]]; then
   log "Created ${DOCO_ENV} — add GIT_ACCESS_TOKEN if the repo becomes private"
 fi
 
-log "Sync Traefik dynamic config (forward-auth for Doco-CD)"
+log "Sync Traefik static + dynamic config (host bind mounts for GitOps)"
+install -d -m 0755 "${STACKS}/traefik/dynamic"
+install -m 644 "${CLONE_DIR}/stacks/traefik/traefik.yml" \
+  "${STACKS}/traefik/traefik.yml"
 install -m 644 "${CLONE_DIR}/stacks/traefik/dynamic/middlewares.yml" \
   "${STACKS}/traefik/dynamic/middlewares.yml"
+install -m 644 "${CLONE_DIR}/stacks/traefik/dynamic/security.yaml" \
+  "${STACKS}/traefik/dynamic/security.yaml"
+TRAEFIK_ENV="${STACKS}/traefik/.env"
+touch "${TRAEFIK_ENV}"
+chmod 600 "${TRAEFIK_ENV}"
+grep -q '^TRAEFIK_CONFIG_PATH=' "${TRAEFIK_ENV}" || \
+  echo 'TRAEFIK_CONFIG_PATH=/opt/stacks/traefik/traefik.yml' >>"${TRAEFIK_ENV}"
+grep -q '^TRAEFIK_DYNAMIC_PATH=' "${TRAEFIK_ENV}" || \
+  echo 'TRAEFIK_DYNAMIC_PATH=/opt/stacks/traefik/dynamic' >>"${TRAEFIK_ENV}"
+grep -q '^TRAEFIK_ACME_DIR=' "${TRAEFIK_ENV}" || \
+  echo 'TRAEFIK_ACME_DIR=/opt/stacks/traefik/acme' >>"${TRAEFIK_ENV}"
+grep -q '^TRAEFIK_LOG_DIR=' "${TRAEFIK_ENV}" || \
+  echo 'TRAEFIK_LOG_DIR=/var/log/traefik' >>"${TRAEFIK_ENV}"
+
+log "Host hardening (unattended upgrades, permissions, Docker, sysctl, auditd)"
+chmod +x "${OPS_DIR}/harden-host.sh"
+DOCKER_RESTART=0 "${OPS_DIR}/harden-host.sh"
 
 log "Starting Doco-CD"
 (
@@ -103,6 +123,9 @@ fi
 
 log "Install backup + healthcheck cron"
 "${OPS_DIR}/install-cron.sh" "${OPS_DIR}"
+
+log "Reconcile GitOps (retire /opt/stacks compose, deploy from main)"
+"${OPS_DIR}/reconcile-gitops.sh"
 
 log "Recreate Authentik worker (socket-proxy, no raw docker.sock)"
 (

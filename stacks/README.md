@@ -42,15 +42,14 @@ Doco-CD applies stacks in this order (see `.doco-cd.yml`):
 3. **openbao** — Postgres, AWS KMS auto-unseal
 4. **doco-cd** — self-managed GitOps controller
 
-Manual one-off (before Doco-CD is running):
+Manual one-off (only before Doco-CD is running):
 
 ```bash
-cd /opt/stacks/traefik && docker compose -f docker-compose.yaml up -d
 cd /opt/hcloud-security-cluster/stacks/authentik && docker compose up -d
 cd /opt/hcloud-security-cluster/stacks/openbao && docker compose up -d
 ```
 
-Host `.env` files are symlinked into the clone (`stacks/*/.env` → `/opt/stacks/*/.env`) so secrets and absolute mount paths survive git-based deploys.
+After Doco-CD is up, use **`stacks/ops/reconcile-gitops.sh`** (or push to `main`) — do not run compose from `/opt/stacks/*/compose.yaml`.
 
 ## Doco-CD (Compose GitOps)
 
@@ -79,6 +78,7 @@ Git-managed blueprints in **`authentik/blueprints/`** mount into the worker at *
 | `020-keeper-openbao.yaml` | Keeper OIDC app, groups scope |
 | `030-doco-cd-forward-auth.yaml` | Doco-CD forward auth provider + outpost |
 | `040-brand-goodmanners.yaml` | Brand for auth hostname |
+| `050-traefik-forward-auth.yaml` | Traefik dashboard forward auth (platform-admin) |
 
 After blueprints apply, in the Authentik admin UI:
 
@@ -103,6 +103,7 @@ If blueprint discovery logs show duplicate-name errors, run **`stacks/ops/fix-bl
 | `setup-sops.sh` | age key at `/opt/stack-secrets`, encrypt host `.env` files |
 | `backup.sh` | Postgres dumps + data tarballs to `/opt/backups/keeper/` |
 | `healthcheck.sh` | Container + HTTPS smoke checks (exit non-zero on failure) |
+| `harden-host.sh` | Unattended upgrades, secret permissions, Docker/sysctl/auditd |
 | `install-cron.sh` | Installs `/etc/cron.d/hcloud-security-cluster` (backup 03:00 UTC, health hourly) |
 
 Requires **`age`** and **`sops`** on the host for encrypted env backups. Doco-CD merges **`compose.sops.yaml`** when `stacks/doco-cd/sops_age_key.txt` exists (created by `setup-sops.sh`).
@@ -111,6 +112,9 @@ Requires **`age`** and **`sops`** on the host for encrypted env backups. Doco-CD
 
 - Authentik **worker** uses **`DOCKER_HOST=tcp://socket-proxy:2375`** instead of mounting `/var/run/docker.sock`.
 - OpenBao mounts **`OPENBAO_AWS_CREDS_DIR`** (default `/opt/stacks/openbao/aws`) at **`/aws`** for KMS unseal.
+- Traefik dashboard and Doco-CD UI use Authentik forward auth (`platform-admin`); webhook path is rate-limited only.
+- OpenBao ingress uses Traefik rate limiting; enable audit with **`bao/enable-audit.sh`** after bootstrap.
+- Run **`stacks/ops/harden-host.sh`** on the host for unattended upgrades, permission fixes, Docker/sysctl/auditd.
 - Never commit **`stacks/*/.env`**, **`bao/config.env`**, or **`stacks/doco-cd/sops_age_key.txt`**.
 
 ## Legacy AWS automation
