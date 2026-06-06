@@ -8,6 +8,7 @@ on:
       - "bao/roles/**"
       - "bao/jwt/**"
       - "bao/sync-from-git.sh"
+      - "bao/validate-sync.sh"
       - ".github/workflows/bao-sync.yml"
   workflow_dispatch:
 
@@ -26,6 +27,7 @@ env:
   GITHUB_REPOSITORY: GoodMannersHosting/aws-security-cluster
   GITHUB_REF: refs/heads/main
   JWT_ROLE: github-actions-ci
+  BAO_CLI_VERSION: "2.5.4"
 
 jobs:
   sync:
@@ -33,18 +35,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Validate manifests (pre-auth)
+        run: bash bao/validate-sync.sh
+
       - name: Install OpenBao CLI
-        env:
-          BAO_CLI_VERSION: "2.5.4"
         run: |
           set -euo pipefail
           curl -fsSL -o openbao.deb \
             "https://github.com/openbao/openbao/releases/download/v${BAO_CLI_VERSION}/openbao_${BAO_CLI_VERSION}_linux_amd64.deb"
           sudo dpkg -i openbao.deb
           bao version
+          bash bao/validate-sync.sh
 
       - name: Authenticate to OpenBao (GitHub OIDC)
-        uses: hashicorp/vault-action@v3
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           url: ${{ env.BAO_ADDR }}
           method: jwt
@@ -59,3 +63,12 @@ jobs:
           AUTHENTIK_CLIENT_ID: ${{ secrets.AUTHENTIK_CLIENT_ID }}
           BAO_TOKEN: ${{ env.VAULT_TOKEN }}
         run: bash bao/sync-from-git.sh
+
+      - name: Post-sync smoke test
+        env:
+          BAO_TOKEN: ${{ env.VAULT_TOKEN }}
+        run: |
+          set -euo pipefail
+          bao policy read ci-sync >/dev/null
+          bao read "auth/${GITHUB_JWT_MOUNT}/role/${JWT_ROLE}" >/dev/null
+          echo "smoke ok"

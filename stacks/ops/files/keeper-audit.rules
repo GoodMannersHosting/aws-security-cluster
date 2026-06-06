@@ -1,0 +1,8 @@
+# Audit sensitive keeper paths (requires auditd).
+-w /opt/stacks/openbao/aws/ -p wa -k openbao_aws_creds
+-w /opt/stack-secrets/ -p wa -k stack_secrets
+-w /opt/stacks/doco-cd/.env -p wa -k doco_cd_env
+-w /opt/stacks/traefik/acme/acme.json -p wa -k traefik_acme
+-w /etc/ssh/sshd_config -p wa -k sshd_config
+-w /etc/docker/daemon.json -p wa -k docker_daemon
+-w /var/run/docker.sock -p wa -k docker_sock

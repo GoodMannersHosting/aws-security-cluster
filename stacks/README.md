@@ -111,6 +111,7 @@ Ensure **`AUTHENTIK_BLUEPRINTS_PATH=/opt/hcloud-security-cluster/authentik/bluep
 | `setup-sops.sh` | age key at `/opt/stack-secrets`, encrypt host `.env` files |
 | `backup.sh` | Postgres dumps + data tarballs to `/opt/backups/keeper/` |
 | `healthcheck.sh` | Container + HTTPS smoke checks (exit non-zero on failure) |
+| `apply-keeper-post-deploy.sh` | On keeper: `harden-host.sh` + `enable-audit.sh` (needs `BAO_TOKEN`) |
 | `harden-host.sh` | Unattended upgrades, secret permissions, Docker/sysctl/auditd |
 | `install-cron.sh` | Installs `/etc/cron.d/hcloud-security-cluster` (backup 03:00 UTC, health hourly) |
 

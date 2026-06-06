@@ -19,6 +19,15 @@
   "customManagers": [
     {
       "customType": "regex",
+      "description": "OpenBao CLI version in bao-sync workflow",
+      "managerFilePatterns": ["/^\\.github/workflows/bao-sync\\.yml$/"],
+      "matchStrings": ["BAO_CLI_VERSION: \"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "openbao/openbao",
+      "extractVersionTemplate": "^v?(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
       "description": "Compose images: image: name:${TAG:-version}",
       "managerFilePatterns": [
         "/(^|/)stacks/.+/compose\\.ya?ml$/",
@@ -43,7 +52,20 @@
   ],
   "packageRules": [
     {
-      "description": "Automerge minor, patch, pin, and digest updates",
+      "description": "Group bao-sync workflow GitHub Actions",
+      "matchManagers": ["github-actions"],
+      "matchFileNames": [".github/workflows/bao-sync.yml"],
+      "groupName": "bao-sync workflow",
+      "groupSlug": "bao-sync-workflow"
+    },
+    {
+      "description": "Group OpenBao CLI pin in bao-sync workflow",
+      "matchManagers": ["custom.regex"],
+      "matchFileNames": [".github/workflows/bao-sync.yml"],
+      "groupName": "bao-sync workflow",
+      "groupSlug": "bao-sync-workflow"
+    },
+    {
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "automerge": true
     },
