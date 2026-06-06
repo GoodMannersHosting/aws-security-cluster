@@ -34,7 +34,16 @@ encrypt_env() {
   local plain="${STACKS}/${stack}/.env"
   local enc="${SECRETS_DIR}/${stack}.env.enc"
   [[ -f "${plain}" ]] || return 0
-  sops encrypt --age "$(cat "${AGE_PUB}")" "${plain}" >"${enc}"
+  local tmp
+  tmp="$(mktemp)"
+  grep -Ev '^[[:space:]]*(#|$)' "${plain}" >"${tmp}" || true
+  if ! sops encrypt --input-type dotenv --output-type dotenv \
+    --age "$(cat "${AGE_PUB}")" "${tmp}" >"${enc}" 2>/dev/null; then
+    rm -f "${tmp}"
+    log "Skip encrypt ${plain} (dotenv parse failed)"
+    return 0
+  fi
+  rm -f "${tmp}"
   chmod 600 "${enc}"
   log "Encrypted ${plain} -> ${enc}"
 }
