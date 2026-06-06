@@ -118,3 +118,22 @@ Requires **`age`** and **`sops`** on the host for encrypted env backups. Doco-CD
 Pulumi under **`infrastructure/`** is reference only for the Hetzner deployment. See [`.github/readme.md`](../.github/readme.md) for the AWS stack overview.
 
 OpenBao policy and OIDC files: repo root **`bao/`**.
+
+## Dependency updates (Renovate)
+
+[`renovate.json`](../renovate.json) follows [Renovate upgrade best practices](https://docs.renovatebot.com/upgrade-best-practices):
+
+- **`config:best-practices`** — lock file maintenance, npm release-age guard, config migration
+- **SHA digest pinning** on all Docker images (`pinDigests`) for immutable deploys
+- **Major updates enabled** — open PRs for manual review; **minor/patch/digest automerge** via GitHub platform automerge
+- **Grouped PRs** per stack (`stack-authentik`, `stack-openbao`, …) and per Pulumi project
+- **Dependency dashboard** — track pending updates from the Renovate issue
+- **Semantic commits** — `chore(deps): …` to match conventional commits on `main`
+
+Enable once:
+
+1. Install the [Mend Renovate GitHub App](https://github.com/apps/renovate) on **GoodMannersHosting/aws-security-cluster**.
+2. Enable **Allow auto-merge** on the repo and ensure required checks pass (or automerge will fall back to manual merge).
+3. Merge the Renovate config PR and any onboarding PR Renovate opens.
+4. Major PRs need manual review; minor/patch/digest PRs merge automatically when checks pass, then Doco-CD deploys to keeper.
+
