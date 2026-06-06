@@ -20,9 +20,9 @@
     {
       "customType": "regex",
       "description": "Compose images: image: name:${TAG:-version}",
-      "fileMatch": [
-        "(^|/)stacks/.+/compose\\.ya?ml$",
-        "(^|/)stacks/.+/docker-compose\\.ya?ml$"
+      "managerFilePatterns": [
+        "/(^|/)stacks/.+/compose\\.ya?ml$/",
+        "/(^|/)stacks/.+/docker-compose\\.ya?ml$/"
       ],
       "matchStrings": [
         "image:\\s+(?<depName>[^\\s$\"']+):\\$\\{(?<envName>[A-Z0-9_]+):-(?<currentValue>[^}\"']+)\\}"
@@ -32,7 +32,9 @@
     {
       "customType": "regex",
       "description": "Compose images: image: ${IMAGE:-name}:${TAG:-version}",
-      "fileMatch": ["(^|/)stacks/.+/compose\\.ya?ml$"],
+      "managerFilePatterns": [
+        "/(^|/)stacks/.+/compose\\.ya?ml$/"
+      ],
       "matchStrings": [
         "image:\\s+\\$\\{(?<imageVar>[A-Z0-9_]+):-(?<depName>[^}]+)\\}:\\$\\{(?<envName>[A-Z0-9_]+):-(?<currentValue>[^}]+)\\}"
       ],
