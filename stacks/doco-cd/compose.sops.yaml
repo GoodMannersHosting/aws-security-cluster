@@ -15,4 +15,4 @@ services:
 
 secrets:
   sops_age_key:
-    file: ./sops_age_key.txt
+    file: /opt/stacks/doco-cd/sops_age_key.txt

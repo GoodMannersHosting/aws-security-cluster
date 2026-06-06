@@ -18,7 +18,7 @@ services:
       POSTGRES_USER: ${PG_USER:-authentik}
       POSTGRES_DB: ${PG_DB:-authentik}
     env_file:
-      - .env
+      - /opt/stacks/authentik/.env
     volumes:
       - ${AUTHENTIK_DATA_ROOT:-/mnt/sec-hil-1-authentik}/postgres:/var/lib/postgresql
     networks:
@@ -86,7 +86,7 @@ services:
       AUTHENTIK_POSTGRESQL__SSLMODE: disable
     shm_size: 512mb
     env_file:
-      - .env
+      - /opt/stacks/authentik/.env
     volumes:
       - ${AUTHENTIK_DATA_ROOT:-/mnt/sec-hil-1-authentik}/data:/data
       - ${AUTHENTIK_DATA_ROOT:-/mnt/sec-hil-1-authentik}/custom-templates:/templates
@@ -108,6 +108,12 @@ services:
       - traefik.http.routers.authentik-outpost-doco.tls.certresolver=letsencrypt
       - traefik.http.routers.authentik-outpost-doco.priority=100
       - traefik.http.routers.authentik-outpost-doco.service=authentik
+      - traefik.http.routers.authentik-outpost-traefik.rule=Host(`${TRAEFIK_DASHBOARD_HOSTNAME}`) && PathPrefix(`/outpost.goauthentik.io/`)
+      - traefik.http.routers.authentik-outpost-traefik.entrypoints=websecure
+      - traefik.http.routers.authentik-outpost-traefik.tls=true
+      - traefik.http.routers.authentik-outpost-traefik.tls.certresolver=letsencrypt
+      - traefik.http.routers.authentik-outpost-traefik.priority=100
+      - traefik.http.routers.authentik-outpost-traefik.service=authentik
     security_opt:
       - no-new-privileges:true
 
@@ -133,7 +139,7 @@ services:
     shm_size: 512mb
     user: root
     env_file:
-      - .env
+      - /opt/stacks/authentik/.env
     volumes:
       - ${AUTHENTIK_DATA_ROOT:-/mnt/sec-hil-1-authentik}/data:/data
       - ${AUTHENTIK_DATA_ROOT:-/mnt/sec-hil-1-authentik}/media:/media

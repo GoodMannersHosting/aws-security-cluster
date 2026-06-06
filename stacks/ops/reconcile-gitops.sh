@@ -68,7 +68,11 @@ trigger_main_webhook() {
     | openssl dgst -sha256 -hmac "${WEBHOOK_SECRET}" \
     | awk '{print "sha256="$2}')"
   log "trigger Doco-CD deploy for ${ref} @ ${sha:0:7}"
-  if ! curl -sf -X POST "https://${host}/v1/webhook?wait=true" \
+  local ip
+  ip="$(docker inspect doco-cd --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null || true)"
+  local url="https://${host}/v1/webhook?wait=true"
+  [[ -n "${ip}" ]] && url="http://${ip}/v1/webhook?wait=true"
+  if ! curl -sf -X POST "${url}" \
     -H "X-GitHub-Event: push" \
     -H "Content-Type: application/json" \
     -H "X-Hub-Signature-256: ${sig}" \
@@ -82,17 +86,23 @@ git -C "${CLONE_DIR}" fetch origin "${BRANCH}"
 git -C "${CLONE_DIR}" checkout "${BRANCH}"
 git -C "${CLONE_DIR}" pull --ff-only origin "${BRANCH}"
 
-log "Symlink host secrets into clone"
-for stack in traefik authentik openbao; do
-  ln -sf "${STACKS}/${stack}/.env" "${CLONE_DIR}/stacks/${stack}/.env"
-done
+install_sops_age_key() {
+  local src="${CLONE_DIR}/stacks/doco-cd/sops_age_key.txt"
+  local dest="${STACKS}/doco-cd/sops_age_key.txt"
+  [[ -f "${src}" ]] || return 0
+  install -d -m 0700 "${STACKS}/doco-cd"
+  install -m 600 "${src}" "${dest}"
+  log "installed SOPS age key at ${dest}"
+}
 
+install_sops_age_key
 ensure_traefik_env
 sync_traefik_from_git
 
 log "Retire manual compose under /opt/stacks (Doco-CD uses git clone)"
 archive_if_exists "${STACKS}/traefik/docker-compose.yaml"
 archive_if_exists "${STACKS}/authentik/compose.yaml"
+archive_if_exists "${STACKS}/openbao/compose.yaml"
 
 trigger_main_webhook
 

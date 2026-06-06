@@ -62,11 +62,11 @@ services:
     tmpfs:
       - /tmp
     labels:
-      - traefik.enable=true
-      - traefik.http.routers.traefik.rule=Host(`${TRAEFIK_DASHBOARD_HOSTNAME}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))
-      - traefik.http.routers.traefik.entrypoints=websecure
-      - traefik.http.routers.traefik.service=api@internal
-      - traefik.http.routers.traefik.tls=true
-      - traefik.http.routers.traefik.tls.certresolver=letsencrypt
-      - traefik.http.routers.traefik.middlewares=default-chain@file
-      - cd.doco.deployment.recreate.ignore={bindMounts: [/acme, /var/log/traefik]}
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`${TRAEFIK_DASHBOARD_HOSTNAME}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.tls=true"
+      - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.traefik.middlewares=forward-auth-authentik@file,chain-default@file"
+      - "cd.doco.deployment.recreate.ignore={bindMounts: [/acme, /var/log/traefik]}"

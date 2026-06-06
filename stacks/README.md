@@ -78,10 +78,11 @@ Git-managed blueprints in **`authentik/blueprints/`** mount into the worker at *
 | `020-keeper-openbao.yaml` | Keeper OIDC app, groups scope |
 | `030-doco-cd-forward-auth.yaml` | Doco-CD forward auth provider + outpost |
 | `040-brand-goodmanners.yaml` | Brand for auth hostname |
-| `050-traefik-forward-auth.yaml` | Traefik dashboard forward auth (platform-admin) |
 
 After blueprints apply, in the Authentik admin UI:
 
+- **Policies** (Customisation → Policies): only **`platform-admin-only`** comes from git (`010-platform-groups.yaml`). Other blueprints attach that policy to apps; they do not create extra expression policies.
+- **Blueprints** (System → Blueprints): one row per `*.yaml` in the mounted directory. If the list is empty, check `AUTHENTIK_BLUEPRINTS_PATH` and file permissions (below).
 - Add your user to **`platform-admin`** (Doco-CD UI access)
 - Add your user to **`keeper-admin`** (OpenBao OIDC admin role)
 
@@ -93,7 +94,14 @@ cp config.env.example config.env   # fill AUTHENTIK_CLIENT_ID/SECRET from Keeper
 ./setup.sh
 ```
 
-If blueprint discovery logs show duplicate-name errors, run **`stacks/ops/fix-blueprints.sh`**.
+If blueprint discovery logs show duplicate-name errors, or policies/blueprints are missing, run on the host:
+
+```bash
+sudo bash /opt/hcloud-security-cluster/stacks/ops/fix-blueprints.sh
+docker restart authentik-worker
+```
+
+Ensure **`AUTHENTIK_BLUEPRINTS_PATH=/opt/hcloud-security-cluster/authentik/blueprints`** is set in `/opt/stacks/authentik/.env`. Blueprint YAML files should be **`644`**, directories **`755`**, and parent paths must be traversable (`o+rx`) so the worker can read the bind mount.
 
 ## Operations (`stacks/ops/`)
 

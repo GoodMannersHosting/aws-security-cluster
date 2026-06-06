@@ -35,7 +35,8 @@ fi
 
 for legacy in \
   "${STACKS}/traefik/docker-compose.yaml" \
-  "${STACKS}/authentik/compose.yaml"; do
+  "${STACKS}/authentik/compose.yaml" \
+  "${STACKS}/openbao/compose.yaml"; do
   if [[ -f "${legacy}" ]]; then
     warn "legacy manual compose still present: ${legacy}"
   fi
