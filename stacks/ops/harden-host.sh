@@ -53,6 +53,14 @@ fix_secret_permissions() {
   if [[ -d "${STACKS}/openbao/aws" ]]; then
     find "${STACKS}/openbao/aws" -type f -exec chmod 600 {} +
   fi
+  if [[ -d "${OPS_DIR}/aws" ]]; then
+    find "${OPS_DIR}/aws" -type f -exec chmod 600 {} +
+  fi
+  [[ -f "${OPS_DIR}/backup.env" ]] && chmod 600 "${OPS_DIR}/backup.env"
+  [[ -f "${STACKS}/doco-cd/sops_age_key.txt" ]] && \
+    chmod 600 "${STACKS}/doco-cd/sops_age_key.txt"
+  [[ -f /opt/stack-secrets/bao-admin.token ]] && \
+    chmod 600 /opt/stack-secrets/bao-admin.token
   for acme in \
     "${STACKS}/traefik/acme/acme.json" \
     "${STACKS}/traefik/acme.json"; do

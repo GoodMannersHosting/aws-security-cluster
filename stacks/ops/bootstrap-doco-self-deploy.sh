@@ -45,8 +45,7 @@ source "${DOCO_ENV}"
 }
 
 if ! docker ps --filter name=^doco-cd$ --filter status=running -q | grep -q .; then
-  echo "doco-cd container must be running before bootstrap" >&2
-  exit 1
+  log "doco-cd not running; temp container will run the GitOps deploy"
 fi
 
 log "Start temporary Doco-CD (${TEMP_NAME}) for self-deploy webhook"

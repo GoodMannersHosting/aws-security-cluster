@@ -13,7 +13,8 @@ check_ctn() {
   fi
 }
 
-for c in traefik doco-cd authentik-server authentik-worker openbao; do
+for c in traefik doco-cd authentik-server authentik-worker authentik-postgresql \
+  openbao openbao-postgresql; do
   check_ctn "${c}"
 done
 

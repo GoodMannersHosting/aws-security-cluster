@@ -70,17 +70,28 @@ if command -v sops >/dev/null 2>&1 && command -v age-keygen >/dev/null 2>&1; the
     "${OPS_DIR}/setup-sops.sh"
 fi
 
-log "Ensure off-site backup config stubs"
+log "Ensure off-site backup config stubs (IAM Roles Anywhere)"
 install -d -m 0700 "${OPS_DIR}/aws"
 if [[ ! -f "${OPS_DIR}/backup.env" ]]; then
   cp "${OPS_DIR}/backup.env.example" "${OPS_DIR}/backup.env"
   chmod 600 "${OPS_DIR}/backup.env"
-  log "Created ${OPS_DIR}/backup.env — set BACKUP_S3_BUCKET and aws/credentials"
+  log "Created ${OPS_DIR}/backup.env — set BACKUP_S3_BUCKET"
 fi
 if [[ ! -f "${OPS_DIR}/aws/credentials" ]]; then
   cp "${OPS_DIR}/aws/credentials.example" "${OPS_DIR}/aws/credentials"
   chmod 600 "${OPS_DIR}/aws/credentials"
-  log "Created ${OPS_DIR}/aws/credentials — add backup IAM user keys"
+  log "Created ${OPS_DIR}/aws/credentials — fill Roles Anywhere ARNs"
+fi
+if ! command -v aws >/dev/null 2>&1; then
+  log "Install AWS CLI v2 (required for Roles Anywhere backups)"
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update -qq
+  apt-get install -y -qq unzip ca-certificates
+  curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip \
+    -o /tmp/awscliv2.zip
+  unzip -q /tmp/awscliv2.zip -d /tmp
+  /tmp/aws/install
+  rm -rf /tmp/aws /tmp/awscliv2.zip
 fi
 
 mkdir -p "${STACKS}/doco-cd"

@@ -1,18 +1,18 @@
 Single-node Compose for Traefik, Authentik, and OpenBao on **keeper.goodmanners.services**.
 
-Production secrets and bind-mount paths live under **`/opt/stacks/<stack>/`**. Doco-CD clones this repo to **`/opt/hcloud-security-cluster`** and applies **`.doco-cd.yml`** on push to `main`.
+Stack **compose and secrets** come from git. Doco-CD clones this repo on push to `main` and applies **`.doco-cd.yml`**. Host paths under **`/opt/stacks/`** hold bind-mount data only (ACME, OpenBao config/KMS creds, age key).
 
 ## Production layout
 
 | Path | Purpose |
 |------|---------|
-| `/opt/stacks/traefik/` | Ingress, ACME (`acme.json`), dynamic middlewares |
-| `/opt/stacks/authentik/` | Compose + `.env` |
-| `/opt/stacks/openbao/` | Compose, `config/`, `aws/` (KMS seal credentials) |
-| `/opt/stacks/doco-cd/` | Doco-CD `.env` only |
-| `/opt/hcloud-security-cluster/` | Git clone (Doco-CD working tree) |
-| `/opt/stack-secrets/` | age key + SOPS-encrypted `.env` backups |
-| `/opt/backups/keeper/` | Nightly backup archives |
+| `stacks/*/secrets.enc.env` (git) | SOPS-encrypted stack env (Doco-CD decrypts at deploy) |
+| `/opt/stacks/doco-cd/sops_age_key.txt` | age **secret** key for SOPS (never commit) |
+| `/opt/stacks/traefik/` | ACME (`acme.json`), dynamic middlewares (from git sync) |
+| `/opt/stacks/openbao/` | `config/`, `aws/` (KMS seal credentials) |
+| `/opt/hcloud-security-cluster/` | Host ops clone (scripts, manual runs) |
+| `/opt/stack-secrets/` | age key backup, optional `bao-admin.token` for automation |
+| `/opt/backups/keeper/` | Local backup staging; nightly S3 upload via Roles Anywhere |
 | `/mnt/sec-hil-1-authentik/` | Authentik Postgres + app data |
 | `/mnt/data/openbao/` | OpenBao data volume |
 
@@ -27,6 +27,7 @@ sudo bash /opt/hcloud-security-cluster/stacks/doco-cd/install-prod.sh
 - Docker Engine and Docker Compose v2
 - DNS A/AAAA for `auth`, `keeper`, `traefik`, and `doco-cd` hostnames
 - External `traefik` Docker network (created by the traefik stack on first boot)
+- **`age`** and **`sops`** on the host for encrypting secrets into git
 
 ```bash
 sudo mkdir -p /mnt/data/postgres/openbao /mnt/data/openbao /var/log/traefik
@@ -42,31 +43,42 @@ Doco-CD applies stacks in this order (see `.doco-cd.yml`):
 3. **openbao** — Postgres, AWS KMS auto-unseal
 4. **doco-cd** — self-managed GitOps controller
 
-Manual one-off (only before Doco-CD is running):
+After Doco-CD is up, use **`stacks/ops/reconcile-gitops.sh`** (or push to `main`). Do not run compose from `/opt/stacks/*/compose.yaml`.
+
+## Secrets (GitOps + SOPS)
+
+1. **In git:** `stacks/{traefik,authentik,openbao,doco-cd}/secrets.enc.env` encrypted with age (see **`.sops.yaml`**).
+2. **On keeper only:** `/opt/stacks/doco-cd/sops_age_key.txt` — Doco-CD mounts this via `compose.sops.yaml` and decrypts env files at deploy time.
+3. **Rotate or add a secret:** edit `/opt/stacks/<stack>/.env` on keeper, then:
 
 ```bash
-cd /opt/hcloud-security-cluster/stacks/authentik && docker compose up -d
-cd /opt/hcloud-security-cluster/stacks/openbao && docker compose up -d
+sudo /opt/hcloud-security-cluster/stacks/ops/encrypt-stack-secrets.sh
+cd /opt/hcloud-security-cluster && git add stacks/*/secrets.enc.env
+git commit -m "chore(secrets): rotate stack env" && git push
 ```
 
-After Doco-CD is up, use **`stacks/ops/reconcile-gitops.sh`** (or push to `main`) — do not run compose from `/opt/stacks/*/compose.yaml`.
+Host `/opt/stacks/*/.env` is used only for cold-start (`compose.install.yaml`) and encrypt input; deploys read **`secrets.enc.env`** from the clone.
+
+Never commit plaintext **`stacks/*/.env`**, **`bao/config.env`**, or **`sops_age_key.txt`**.
 
 ## Doco-CD (Compose GitOps)
 
 [Doco-CD](https://github.com/kimdre/doco-cd) runs `docker compose` per stack when GitHub sends a webhook.
 
-1. Run **`stacks/doco-cd/install-prod.sh`** (clone, Doco-CD, env stubs, ops cron).
-2. Set **`GIT_ACCESS_TOKEN`** in **`/opt/stacks/doco-cd/.env`** if the repo is private.
-3. Configure the GitHub webhook on **`GoodMannersHosting/aws-security-cluster`**:
+1. Run **`stacks/doco-cd/install-prod.sh`** (clone, Doco-CD, SOPS key, ops cron).
+2. Set **`GIT_ACCESS_TOKEN`** in encrypted doco-cd secrets if the repo is private.
+3. GitHub webhook on **`GoodMannersHosting/aws-security-cluster`**:
    - URL: `https://doco-cd.goodmanners.services/v1/webhook`
-   - Secret: value of **`WEBHOOK_SECRET`** in `/opt/stacks/doco-cd/.env`
+   - Secret: **`WEBHOOK_SECRET`** (in `stacks/doco-cd/secrets.enc.env`)
    - Content type: `application/json`
-   - Events: **push** on branch **main**
-4. Set **`MAX_CONCURRENT_DEPLOYMENTS=1`** in Doco-CD env so stacks deploy serially.
+   - Events: **push** on branch **main** only
+4. **`MAX_CONCURRENT_DEPLOYMENTS=1`** in doco-cd env (serial deploys).
 
-The UI at `https://doco-cd.goodmanners.services` is protected by Authentik forward auth. **`/v1/webhook` is excluded** from forward auth (Traefik router `doco-cd-webhook`) so GitHub can deliver payloads without SSO.
+The UI at `https://doco-cd.goodmanners.services` uses Authentik forward auth. **`/v1/webhook`** and **`/v1/health`** bypass forward auth.
 
-For a greenfield VPS with no existing `/opt/stacks`, use **`stacks/doco-cd/bootstrap.sh`** instead.
+**Doco-CD self-deploy:** first adoption uses **`stacks/ops/bootstrap-doco-self-deploy.sh`**. After compose changes to the doco-cd stack, run with **`FORCE_BOOTSTRAP=1`**.
+
+For a greenfield VPS with no existing `/opt/stacks`, use **`stacks/doco-cd/bootstrap.sh`**.
 
 ## Authentik blueprints
 
@@ -79,70 +91,86 @@ Git-managed blueprints in **`authentik/blueprints/`** mount into the worker at *
 | `030-doco-cd-forward-auth.yaml` | Doco-CD forward auth provider + outpost |
 | `040-brand-goodmanners.yaml` | Brand for auth hostname |
 
-After blueprints apply, in the Authentik admin UI:
+After blueprints apply:
 
-- **Policies** (Customisation → Policies): only **`platform-admin-only`** comes from git (`010-platform-groups.yaml`). Other blueprints attach that policy to apps; they do not create extra expression policies.
-- **Blueprints** (System → Blueprints): one row per `*.yaml` in the mounted directory. If the list is empty, check `AUTHENTIK_BLUEPRINTS_PATH` and file permissions (below).
-- Add your user to **`platform-admin`** (Doco-CD UI access)
-- Add your user to **`keeper-admin`** (OpenBao OIDC admin role)
+- Add your user to **`platform-admin`** (Doco-CD UI) and **`keeper-admin`** (OpenBao OIDC admin)
+- OpenBao OIDC and policies: repo **`bao/`** (`setup.sh` with `config.env` on the host — not in git)
 
-Then configure OpenBao OIDC:
-
-```bash
-cd /opt/hcloud-security-cluster/bao
-cp config.env.example config.env   # fill AUTHENTIK_CLIENT_ID/SECRET from Keeper app
-./setup.sh
-```
-
-If blueprint discovery logs show duplicate-name errors, or policies/blueprints are missing, run on the host:
+If blueprint discovery fails:
 
 ```bash
 sudo bash /opt/hcloud-security-cluster/stacks/ops/fix-blueprints.sh
 docker restart authentik-worker
 ```
 
-Ensure **`AUTHENTIK_BLUEPRINTS_PATH=/opt/hcloud-security-cluster/authentik/blueprints`** is set in `/opt/stacks/authentik/.env`. Blueprint YAML files should be **`644`**, directories **`755`**, and parent paths must be traversable (`o+rx`) so the worker can read the bind mount.
+**`AUTHENTIK_BLUEPRINTS_PATH`** must point at the git blueprints dir (in encrypted authentik secrets).
 
 ## Operations (`stacks/ops/`)
 
 | Script | Purpose |
 |--------|---------|
-| `fix-blueprints.sh` | Remove orphan blueprint rows, delete macOS `._*` junk |
-| `setup-sops.sh` | age key at `/opt/stack-secrets`, encrypt host `.env` files |
-| `backup.sh` | Postgres dumps + data tarballs to `/opt/backups/keeper/` |
+| `verify-gitops.sh` | Clone alignment, encrypted env in clone, compose projects |
+| `reconcile-gitops.sh` | Pull host clone, sync traefik binds, webhook or bootstrap |
+| `encrypt-stack-secrets.sh` | Host `.env` → `stacks/*/secrets.enc.env` in clone |
+| `setup-sops.sh` | age key on host + run encrypt |
+| `bootstrap-doco-self-deploy.sh` | One-time / forced Doco-CD GitOps stamp |
+| `cold-start-doco-cd.sh` | Start Doco-CD before first GitOps deploy |
+| `apply-keeper-post-deploy.sh` | Host hardening + OpenBao file audit + auditd check |
+| `harden-host.sh` | Unattended upgrades, permissions, Docker/sysctl/auditd |
 | `healthcheck.sh` | Container + HTTPS smoke checks (exit non-zero on failure) |
-| `apply-keeper-post-deploy.sh` | On keeper: `harden-host.sh` + `enable-audit.sh` (needs `BAO_TOKEN`) |
-| `harden-host.sh` | Unattended upgrades, secret permissions, Docker/sysctl/auditd |
-| `install-cron.sh` | Installs `/etc/cron.d/hcloud-security-cluster` (backup 03:00 UTC, health hourly) |
+| `backup.sh` | Postgres dumps + data tarballs; S3 upload when configured |
+| `install-cron.sh` | Cron: backup 03:00 UTC, health hourly, gitops verify :15 |
+| `fix-blueprints.sh` | Orphan blueprint cleanup |
 
-Requires **`age`** and **`sops`** on the host for encrypted env backups. Doco-CD merges **`compose.sops.yaml`** when `stacks/doco-cd/sops_age_key.txt` exists (created by `setup-sops.sh`).
+### Cron (keeper)
+
+Installed by **`install-cron.sh`** → `/etc/cron.d/hcloud-security-cluster`:
+
+| Schedule | Job | Log |
+|----------|-----|-----|
+| `0 3 * * *` | `backup.sh` | `/var/log/hcloud-backup.log` |
+| `0 * * * *` | `healthcheck.sh` | `/var/log/hcloud-health.log` |
+| `15 * * * *` | `verify-gitops.sh` | `/var/log/hcloud-gitops.log` |
+
+Run manually after changes:
+
+```bash
+sudo /opt/hcloud-security-cluster/stacks/ops/apply-keeper-post-deploy.sh
+sudo /opt/hcloud-security-cluster/stacks/ops/healthcheck.sh
+sudo /opt/hcloud-security-cluster/stacks/ops/verify-gitops.sh
+```
+
+### Hardening and audit
+
+**`apply-keeper-post-deploy.sh`** runs:
+
+- **`harden-host.sh`** — unattended security upgrades, secret file modes, Docker `daemon.json`, sysctl, **Linux auditd** rules on sensitive paths
+- **`bao/enable-audit.sh`** — OpenBao **file** audit device (requires root token)
+
+For automated OpenBao audit on keeper, store a root token once:
+
+```bash
+sudo install -m 600 /dev/stdin /opt/stack-secrets/bao-admin.token
+# paste root token, Ctrl-D
+sudo /opt/hcloud-security-cluster/stacks/ops/apply-keeper-post-deploy.sh
+```
+
+Or: `export BAO_TOKEN=...` then run **`apply-keeper-post-deploy.sh`**.
+
+### Off-site backups
+
+Postgres dumps upload via **IAM Roles Anywhere** (see **`backup.env`** on keeper, **`backup.env.example`**). AWS CLI uses `credential_process` with `aws_signing_helper` and **`stacks/ops/aws/keeper.crt`**. CA private key stays in **`/opt/stack-secrets/keeper-ra-ca.key`**.
 
 ## Security notes
 
-- Authentik **worker** uses **`DOCKER_HOST=tcp://socket-proxy:2375`** instead of mounting `/var/run/docker.sock`.
-- OpenBao mounts **`OPENBAO_AWS_CREDS_DIR`** (default `/opt/stacks/openbao/aws`) at **`/aws`** for KMS unseal.
-- Traefik dashboard and Doco-CD UI use Authentik forward auth (`platform-admin`); webhook path is rate-limited only.
-- OpenBao ingress uses Traefik rate limiting; enable audit with **`bao/enable-audit.sh`** after bootstrap.
-- Run **`stacks/ops/harden-host.sh`** on the host for unattended upgrades, permission fixes, Docker/sysctl/auditd.
-- Never commit **`stacks/*/.env`**, **`bao/config.env`**, or **`stacks/doco-cd/sops_age_key.txt`**.
+- Authentik **worker** uses **`DOCKER_HOST=tcp://socket-proxy:2375`** (no raw docker.sock).
+- OpenBao mounts **`OPENBAO_AWS_CREDS_DIR`** at **`/aws`** for KMS unseal.
+- Traefik dashboard and Doco-CD UI: Authentik forward auth (`platform-admin`); webhook path rate-limited only.
+- OpenBao ingress: Traefik rate limiting.
+- **`stacks/ops/fix-fail2ban-ssh.sh`** — avoid SSH lockout; maintain **`admin-ips.txt`**.
 
 OpenBao policy and OIDC files: repo root **`bao/`**.
 
 ## Dependency updates (Renovate)
 
-[`renovate.json`](../renovate.json) follows [Renovate upgrade best practices](https://docs.renovatebot.com/upgrade-best-practices):
-
-- **`config:best-practices`** — lock file maintenance, npm release-age guard, config migration
-- **SHA digest pinning** on all Docker images (`pinDigests`) for immutable deploys
-- **Major updates enabled** — open PRs for manual review; **minor/patch/digest automerge** via GitHub platform automerge
-- **Grouped PRs** per Compose stack (`stack-authentik`, `stack-openbao`, …)
-- **Dependency dashboard** — track pending updates from the Renovate issue
-- **Semantic commits** — `chore(deps): …` to match conventional commits on `main`
-
-Enable once:
-
-1. Install the [Mend Renovate GitHub App](https://github.com/apps/renovate) on **GoodMannersHosting/aws-security-cluster**.
-2. Enable **Allow auto-merge** on the repo and ensure required checks pass (or automerge will fall back to manual merge).
-3. Merge the Renovate config PR and any onboarding PR Renovate opens.
-4. Major PRs need manual review; minor/patch/digest PRs merge automatically when checks pass, then Doco-CD deploys to keeper.
-
+[`renovate.json`](../renovate.json) — SHA-pinned images, grouped stack PRs, automerge on minor/patch. Restrict production webhooks to **`main`** so Renovate branch pushes do not repoint the deploy clone.

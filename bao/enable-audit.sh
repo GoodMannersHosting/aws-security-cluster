@@ -10,7 +10,11 @@ die() { echo "error: $*" >&2; exit 1; }
 load_config() {
   [[ -f "$CONFIG" ]] && source "$CONFIG"
   export BAO_ADDR="${BAO_ADDR:-https://keeper.goodmanners.services}"
-  [[ -n "${BAO_TOKEN:-}" ]] || die "export BAO_TOKEN before running"
+  if [[ -z "${BAO_TOKEN:-}" && -n "${BAO_TOKEN_FILE:-}" && -f "${BAO_TOKEN_FILE}" ]]; then
+    BAO_TOKEN="$(tr -d '[:space:]' < "${BAO_TOKEN_FILE}")"
+    export BAO_TOKEN
+  fi
+  [[ -n "${BAO_TOKEN:-}" ]] || die "set BAO_TOKEN or BAO_TOKEN_FILE (root or sudo token)"
 }
 
 enable_file_audit() {

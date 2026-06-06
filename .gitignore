@@ -20,5 +20,12 @@ stacks/doco-cd/sops_age_key.txt
 stacks/**/*.env.plain
 stacks/**/secrets.env
 
+# Off-site backup credentials (S3 IAM user)
+stacks/ops/backup.env
+stacks/ops/aws/credentials
+stacks/ops/aws/keeper.key
+stacks/ops/aws/ca.srl
+/opt/stack-secrets/keeper-ra-ca.key
+
 # System Files
 .DS_Store
