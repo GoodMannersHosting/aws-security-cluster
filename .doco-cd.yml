@@ -1,5 +1,5 @@
-# Production (keeper.goodmanners.services): compose files and secrets under /opt/stacks/.
-# Doco-CD clones this repo; env_files point at host .env files (see stacks/doco-cd/install-prod.sh).
+# Production (keeper.goodmanners.services): secrets and bind-mount data under /opt/stacks/.
+# Doco-CD mounts /opt/stacks read-only so env_files below resolve inside the container.
 # MAX_CONCURRENT_DEPLOYMENTS=1 serializes deploys in list order.
 
 ---

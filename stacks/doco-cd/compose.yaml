@@ -11,6 +11,7 @@ services:
       HTTP_PORT: "80"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/stacks:/opt/stacks:ro
       - doco_cd_data:/data
     networks:
       - traefik
@@ -24,14 +25,14 @@ services:
       - traefik.http.routers.doco-cd-webhook.tls=true
       - traefik.http.routers.doco-cd-webhook.tls.certresolver=letsencrypt
       - traefik.http.routers.doco-cd-webhook.priority=100
-      - traefik.http.routers.doco-cd-webhook.middlewares=security-headers@file
+      - "traefik.http.routers.doco-cd-webhook.middlewares=ratelimit-webhook@file,security-headers@file"
       - traefik.http.routers.doco-cd-webhook.service=doco-cd
       - traefik.http.routers.doco-cd.rule=Host(`${DOCO_CD_HOSTNAME}`)
       - traefik.http.routers.doco-cd.entrypoints=websecure
       - traefik.http.routers.doco-cd.tls=true
       - traefik.http.routers.doco-cd.tls.certresolver=letsencrypt
       - traefik.http.routers.doco-cd.priority=1
-      - traefik.http.routers.doco-cd.middlewares=forward-auth-authentik@file,security-headers@file
+      - "traefik.http.routers.doco-cd.middlewares=forward-auth-authentik@file,security-headers@file"
       - traefik.http.routers.doco-cd.service=doco-cd
     security_opt:
       - no-new-privileges:true
