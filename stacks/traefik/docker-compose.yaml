@@ -25,7 +25,6 @@ services:
       DISTRIBUTION: 0
       EXEC: 0
       IMAGES: 0
-      INFO: 0
       NODES: 0
       PLUGINS: 0
       SECRETS: 0
