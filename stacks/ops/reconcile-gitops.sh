@@ -153,6 +153,11 @@ log "Update host clone ${CLONE_DIR}"
 ensure_host_clone_remote
 git -C "${CLONE_DIR}" fetch origin "${BRANCH}"
 git -C "${CLONE_DIR}" checkout "${BRANCH}"
+while IFS= read -r -d '' untracked; do
+  log "remove untracked ${untracked} (blocks git pull)"
+  rm -f "${CLONE_DIR}/${untracked}"
+done < <(git -C "${CLONE_DIR}" ls-files --others --exclude-standard \
+  -z 'stacks/*/secrets.enc.env')
 git -C "${CLONE_DIR}" pull --ff-only origin "${BRANCH}"
 
 migrate_legacy_doco_project
