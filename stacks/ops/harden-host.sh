@@ -55,12 +55,18 @@ fix_secret_permissions() {
   fi
   if [[ -d "${OPS_DIR}/aws" ]]; then
     find "${OPS_DIR}/aws" -type f -exec chmod 600 {} +
+    signing_helper="${OPS_DIR}/aws/aws_signing_helper"
+    [[ -f "${signing_helper}" ]] && chmod 700 "${signing_helper}"
   fi
   [[ -f "${OPS_DIR}/backup.env" ]] && chmod 600 "${OPS_DIR}/backup.env"
   [[ -f "${STACKS}/doco-cd/sops_age_key.txt" ]] && \
     chmod 600 "${STACKS}/doco-cd/sops_age_key.txt"
   [[ -f /opt/stack-secrets/bao-admin.token ]] && \
     chmod 600 /opt/stack-secrets/bao-admin.token
+  if [[ -d /opt/stack-secrets/alloy-approle ]]; then
+    chmod 700 /opt/stack-secrets/alloy-approle
+    chmod 600 /opt/stack-secrets/alloy-approle/* 2>/dev/null || true
+  fi
   for acme in \
     "${STACKS}/traefik/acme/acme.json" \
     "${STACKS}/traefik/acme.json"; do
