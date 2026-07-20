@@ -14,7 +14,7 @@ check_ctn() {
 }
 
 for c in traefik doco-cd authentik-server authentik-worker authentik-postgresql \
-  openbao openbao-postgresql alloy; do
+  openbao openbao-postgresql powerdns-authoritative powerdns-postgresql alloy; do
   check_ctn "${c}"
 done
 
@@ -33,5 +33,6 @@ check_url() {
 check_url "https://auth.goodmanners.services/"
 check_url "https://keeper.goodmanners.services/v1/sys/health"
 check_url "https://doco-cd.goodmanners.services/v1/health"
+check_url "https://pdns.goodmanners.services/"
 
 exit "${fail}"

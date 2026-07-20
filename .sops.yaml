@@ -1,5 +1,10 @@
-# Public age recipients only. Secret key stays on keeper at
-# /opt/stacks/doco-cd/sops_age_key.txt (never commit).
+# Public age recipients only. Any one of these private keys can decrypt.
+# Primary secret key stays on keeper at /opt/stacks/doco-cd/sops_age_key.txt
+# (never commit). Additional recipients allow other authorized admins to
+# decrypt/rotate secrets from their own machines.
 creation_rules:
   - path_regex: (?i)^stacks/.+/secrets\.enc\.env$
-    age: age1aa9az432whplu0ae9lnz2n9ujvz2nf22uwdm7nv8yzy58ut64sfswuax8z
+    age: >-
+      age1aa9az432whplu0ae9lnz2n9ujvz2nf22uwdm7nv8yzy58ut64sfswuax8z,
+      age1aq9fayk647u8rp7vfl4z4k9drp4mztluumgvm09w2uz36f5exysspkvk7p,
+      age1986cspgjd7xhdwfwmyplc5jsjk43gewedu7s3sr7gwwhrdp7rgzq6t4ax9

@@ -30,7 +30,7 @@ sudo bash /opt/hcloud-security-cluster/stacks/doco-cd/install-prod.sh
 - **`age`** and **`sops`** on the host for encrypting secrets into git
 
 ```bash
-sudo mkdir -p /mnt/data/postgres/openbao /mnt/data/openbao /var/log/traefik
+sudo mkdir -p /mnt/data/postgres/openbao /mnt/data/openbao /mnt/data/postgres/powerdns /var/log/traefik
 sudo touch /var/log/traefik/access.log
 ```
 
