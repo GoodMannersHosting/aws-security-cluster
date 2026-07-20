@@ -41,7 +41,7 @@ Doco-CD applies stacks in this order (see `.doco-cd.yml`):
 1. **traefik** — ingress, ACME resolver `letsencrypt`
 2. **authentik** — Postgres, server, worker (via socket-proxy), embedded outpost routes
 3. **openbao** — Postgres, AWS KMS auto-unseal
-4. **powerdns** — authoritative DNS server + PostgreSQL backend
+4. **powerdns** — authoritative DNS server + PostgreSQL backend (DNS TCP/UDP 53 and API routed via Traefik)
 5. **alloy** — metrics/logs collector (remote_write + Loki push; no local Grafana)
 6. **doco-cd** — self-managed GitOps controller
 

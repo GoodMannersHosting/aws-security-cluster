@@ -67,9 +67,6 @@ services:
       - NET_RAW
     security_opt:
       - no-new-privileges:true
-    ports:
-      - ${POWERDNS_DNS_TCP_PORT:-53}:53/tcp
-      - ${POWERDNS_DNS_UDP_PORT:-53}:53/udp
     networks:
       - powerdns
       - traefik
@@ -82,6 +79,13 @@ services:
       - traefik.http.routers.powerdns.tls.certresolver=letsencrypt
       - traefik.http.routers.powerdns.middlewares=security-headers@file
       - traefik.http.services.powerdns.loadbalancer.server.port=8081
+      - traefik.tcp.routers.powerdns-dns-tcp.entrypoints=dns-tcp
+      - traefik.tcp.routers.powerdns-dns-tcp.rule=HostSNI(`*`)
+      - traefik.tcp.routers.powerdns-dns-tcp.service=powerdns-dns-tcp
+      - traefik.tcp.services.powerdns-dns-tcp.loadbalancer.server.port=53
+      - traefik.udp.routers.powerdns-dns-udp.entrypoints=dns-udp
+      - traefik.udp.routers.powerdns-dns-udp.service=powerdns-dns-udp
+      - traefik.udp.services.powerdns-dns-udp.loadbalancer.server.port=53
 
 networks:
   powerdns:
