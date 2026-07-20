@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Backup Postgres, OpenBao/Authentik data, ACME store, and encrypted env copies.
+# Backup Postgres, service data, ACME store, and encrypted env copies.
 # Optional S3 upload when BACKUP_S3_BUCKET is set (see backup.env.example).
 set -euo pipefail
 
@@ -36,6 +36,7 @@ dump_pg() {
 log "PostgreSQL dumps (custom format, gzip-compressed)"
 dump_pg authentik-postgresql authentik.dump
 dump_pg openbao-postgresql openbao.dump
+dump_pg powerdns-postgresql powerdns.dump
 
 log "Archive data directories"
 tar -czf "${DEST}/authentik-data.tgz" \
@@ -80,6 +81,7 @@ upload_s3() {
   log "Upload PostgreSQL dumps to ${s3_base}/"
   s3_cp "${DEST}/authentik.dump" "${s3_base}/authentik.dump"
   s3_cp "${DEST}/openbao.dump" "${s3_base}/openbao.dump"
+  s3_cp "${DEST}/powerdns.dump" "${s3_base}/powerdns.dump"
 
   if [[ "${BACKUP_S3_FULL_BUNDLE}" == "1" ]]; then
     local bundle="${BACKUP_ROOT}/keeper-${STAMP}.tar.gz"
