@@ -102,7 +102,7 @@ providers:
 certificatesResolvers:
   letsencrypt:
     acme:
-      email: you@example.com
+      email: admin@goodmanners.services
       storage: /acme/acme.json
       httpChallenge:
         entryPoint: web
