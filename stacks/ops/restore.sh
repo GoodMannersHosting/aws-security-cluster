@@ -56,6 +56,7 @@ fetch_s3_backup() {
   log "Download ${s3_base}/"
   run env "${aws_env[@]}" aws s3 cp "${s3_base}/authentik.dump" "${dest}/authentik.dump"
   run env "${aws_env[@]}" aws s3 cp "${s3_base}/openbao.dump" "${dest}/openbao.dump"
+  run env "${aws_env[@]}" aws s3 cp "${s3_base}/powerdns.dump" "${dest}/powerdns.dump"
   local bundle="${BACKUP_ROOT}/keeper-${stamp}.tar.gz"
   if env "${aws_env[@]}" aws s3 ls "${s3_base}/keeper-${stamp}.tar.gz" >/dev/null 2>&1; then
     run env "${aws_env[@]}" aws s3 cp \
@@ -114,15 +115,17 @@ main() {
   log "Restore from ${backup_dir}"
   [[ -f "${backup_dir}/authentik.dump" ]] || die "missing authentik.dump"
   [[ -f "${backup_dir}/openbao.dump" ]] || die "missing openbao.dump"
+  [[ -f "${backup_dir}/powerdns.dump" ]] || die "missing powerdns.dump"
 
   if [[ "${STOP_STACKS}" == "1" && "${DRY_RUN}" != "1" ]]; then
     log "Stopping application containers (Postgres stays up)"
-    docker stop openbao authentik-server authentik-worker traefik doco-cd alloy \
+    docker stop openbao authentik-server authentik-worker powerdns-authoritative traefik doco-cd alloy \
       2>/dev/null || true
   fi
 
   restore_pg authentik-postgresql "${backup_dir}/authentik.dump"
   restore_pg openbao-postgresql "${backup_dir}/openbao.dump"
+  restore_pg powerdns-postgresql "${backup_dir}/powerdns.dump"
 
   restore_tar "${backup_dir}/authentik-data.tgz" /mnt/sec-hil-1-authentik
   restore_tar "${backup_dir}/openbao-data.tgz" /mnt/data

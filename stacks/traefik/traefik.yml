@@ -83,6 +83,12 @@ entryPoints:
         - "192.168.0.0/16"
         - "127.0.0.1/32"
 
+  dns-tcp:
+    address: ":53"
+
+  dns-udp:
+    address: ":53/udp"
+
 providers:
   docker:
     endpoint: "tcp://socket-proxy:2375"

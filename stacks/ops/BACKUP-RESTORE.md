@@ -10,6 +10,7 @@ Each run creates a timestamped directory under **`/opt/backups/keeper/`**:
 |----------|--------|---------|
 | `authentik.dump` | `authentik-postgresql` (`pg_dump -Fc`) | Authentik DB (users, apps, flows, outposts) |
 | `openbao.dump` | `openbao-postgresql` (`pg_dump -Fc`) | OpenBao metadata (mounts, policies, audit config in DB) |
+| `powerdns.dump` | `powerdns-postgresql` (`pg_dump -Fc`) | PowerDNS zones, records, metadata |
 | `authentik-data.tgz` | `/mnt/sec-hil-1-authentik/{data,media,certs}` | Authentik media and file-backed state |
 | `openbao-data.tgz` | `/mnt/data/openbao` | OpenBao file audit log and local file data |
 | `traefik-acme.tgz` | `/opt/stacks/traefik/acme` | TLS certificates (Let's Encrypt) |
@@ -28,6 +29,7 @@ When `BACKUP_S3_BUCKET` is set in **`backup.env`**:
 ```
 s3://BUCKET/keeper/YYYYMMDDTHHMMSSZ/authentik.dump
 s3://BUCKET/keeper/YYYYMMDDTHHMMSSZ/openbao.dump
+s3://BUCKET/keeper/YYYYMMDDTHHMMSSZ/powerdns.dump
 s3://BUCKET/keeper/YYYYMMDDTHHMMSSZ/keeper-YYYYMMDDTHHMMSSZ.tar.gz   # optional full bundle
 ```
 
@@ -47,8 +49,8 @@ tail -50 /var/log/hcloud-backup.log
 Restore is destructive for databases and extracted archives. Plan downtime and test on a staging host first.
 
 1. Pick a backup stamp (directory name or S3 prefix).
-2. Stop application containers (OpenBao, Authentik, Traefik, Doco-CD, Alloy) — Postgres keeps running for `pg_restore`.
-3. Restore both Postgres dumps with **`pg_restore --clean --if-exists`**.
+2. Stop application containers (OpenBao, Authentik, PowerDNS, Traefik, Doco-CD, Alloy) — Postgres keeps running for `pg_restore`.
+3. Restore Postgres dumps with **`pg_restore --clean --if-exists`**.
 4. Extract tarballs over data paths.
 5. Reconcile GitOps and verify health.
 
@@ -89,6 +91,7 @@ sudo /opt/hcloud-security-cluster/stacks/ops/restore.sh \
 |------|---------|
 | Authentik only | `authentik.dump` + optional `authentik-data.tgz` |
 | OpenBao only | `openbao.dump` + optional `openbao-data.tgz` |
+| PowerDNS only | `powerdns.dump` |
 | TLS only | `traefik-acme.tgz` → `/opt/stacks/traefik/` |
 | Secrets keys only | `stack-secrets.tgz` → `/` |
 

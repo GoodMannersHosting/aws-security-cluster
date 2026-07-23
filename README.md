@@ -6,6 +6,7 @@ Security platform automation for **Good Manners Hosting**. The active deployment
 |----------|---------|
 | `auth.goodmanners.services` | Authentik |
 | `keeper.goodmanners.services` | OpenBao |
+| `pdns.goodmanners.services` | PowerDNS API |
 | `traefik.goodmanners.services` | Traefik dashboard |
 | `doco-cd.goodmanners.services` | Doco-CD (Authentik forward auth on UI only) |
 

@@ -51,6 +51,8 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "53:53/tcp"
+      - "53:53/udp"
     volumes:
       - ${TRAEFIK_CONFIG_PATH:-./traefik.yml}:/etc/traefik/traefik.yml:ro
       - ${TRAEFIK_DYNAMIC_PATH:-./dynamic}:/etc/traefik/dynamic:ro

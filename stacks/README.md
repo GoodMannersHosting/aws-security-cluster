@@ -25,12 +25,12 @@ sudo bash /opt/hcloud-security-cluster/stacks/doco-cd/install-prod.sh
 ## Prerequisites
 
 - Docker Engine and Docker Compose v2
-- DNS A/AAAA for `auth`, `keeper`, `traefik`, and `doco-cd` hostnames
+- DNS A/AAAA for `auth`, `keeper`, `pdns`, `traefik`, and `doco-cd` hostnames
 - External `traefik` Docker network (created by the traefik stack on first boot)
 - **`age`** and **`sops`** on the host for encrypting secrets into git
 
 ```bash
-sudo mkdir -p /mnt/data/postgres/openbao /mnt/data/openbao /var/log/traefik
+sudo mkdir -p /mnt/data/postgres/openbao /mnt/data/openbao /mnt/data/postgres/powerdns /var/log/traefik
 sudo touch /var/log/traefik/access.log
 ```
 
@@ -41,14 +41,15 @@ Doco-CD applies stacks in this order (see `.doco-cd.yml`):
 1. **traefik** — ingress, ACME resolver `letsencrypt`
 2. **authentik** — Postgres, server, worker (via socket-proxy), embedded outpost routes
 3. **openbao** — Postgres, AWS KMS auto-unseal
-4. **doco-cd** — self-managed GitOps controller
+4. **powerdns** — authoritative DNS server + PostgreSQL backend (DNS TCP/UDP 53 and API routed via Traefik)
 5. **alloy** — metrics/logs collector (remote_write + Loki push; no local Grafana)
+6. **doco-cd** — self-managed GitOps controller
 
 After Doco-CD is up, use **`stacks/ops/reconcile-gitops.sh`** (or push to `main`). Do not run compose from `/opt/stacks/*/compose.yaml`.
 
 ## Secrets (GitOps + SOPS)
 
-1. **In git:** `stacks/{traefik,authentik,openbao,doco-cd}/secrets.enc.env` encrypted with age (see **`.sops.yaml`**).
+1. **In git:** `stacks/{traefik,authentik,openbao,powerdns,doco-cd,alloy}/secrets.enc.env` encrypted with age (see **`.sops.yaml`**).
 2. **On keeper only:** `/opt/stacks/doco-cd/sops_age_key.txt` — Doco-CD mounts this via `compose.sops.yaml` and decrypts env files at deploy time.
 3. **Rotate or add a secret:** edit `/opt/stacks/<stack>/.env` on keeper, then:
 

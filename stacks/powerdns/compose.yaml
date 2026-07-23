@@ -1,0 +1,94 @@
+name: powerdns
+
+services:
+  postgresql:
+    image: docker.io/library/postgres:${POSTGRES_TAG:-18-alpine}
+    container_name: powerdns-postgresql
+    restart: unless-stopped
+    env_file:
+      - secrets.enc.env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASS:?set POSTGRES_PASS}
+      POSTGRES_DB: ${POSTGRES_DB:-pdns}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -d "$${POSTGRES_DB}" -U "$${POSTGRES_USER}"
+      start_period: 10s
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - ${POWERDNS_POSTGRES_DATA:-/mnt/data/postgres/powerdns}:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    networks:
+      - powerdns
+    security_opt:
+      - no-new-privileges:true
+
+  authoritative:
+    image: docker.io/powerdns/pdns-auth-49:${POWERDNS_TAG:-4.9.16}
+    container_name: powerdns-authoritative
+    restart: unless-stopped
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    env_file:
+      - secrets.enc.env
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        exec pdns_server \
+          --no-config \
+          --launch=gpgsql \
+          --autosecondary=yes \
+          --local-address=0.0.0.0 \
+          --local-port=53 \
+          --version-string=powerdns \
+          --loglevel=6 \
+          --query-logging=yes \
+          --webserver=yes \
+          --api=yes \
+          --webserver-address=0.0.0.0 \
+          --webserver-port=8081 \
+          --webserver-loglevel=normal \
+          --webserver-allow-from=10.0.0.0/8,172.16.0.0/12,172.18.0.0/16,192.168.0.0/16,127.0.0.1/32 \
+          --api-key="$${PDNS_AUTH_API_KEY}" \
+          --webserver-password="$${PDNS_AUTH_WEB_KEY}" \
+          --gpgsql-host=postgresql \
+          --gpgsql-port=5432 \
+          --gpgsql-dbname="$${POSTGRES_DB}" \
+          --gpgsql-user="$${POSTGRES_USER}" \
+          --gpgsql-password="$${POSTGRES_PASS}"
+    cap_add:
+      - NET_BIND_SERVICE
+      - NET_RAW
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - powerdns
+      - traefik
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik
+      - traefik.http.routers.powerdns.rule=Host(`${POWERDNS_API_HOSTNAME}`)
+      - traefik.http.routers.powerdns.entrypoints=websecure
+      - traefik.http.routers.powerdns.tls=true
+      - traefik.http.routers.powerdns.tls.certresolver=letsencrypt
+      - traefik.http.routers.powerdns.middlewares=security-headers@file
+      - traefik.http.services.powerdns.loadbalancer.server.port=8081
+      - traefik.tcp.routers.powerdns-dns-tcp.entrypoints=dns-tcp
+      - traefik.tcp.routers.powerdns-dns-tcp.rule=HostSNI(`*`)
+      - traefik.tcp.routers.powerdns-dns-tcp.service=powerdns-dns-tcp
+      - traefik.tcp.services.powerdns-dns-tcp.loadbalancer.server.port=53
+      - traefik.udp.routers.powerdns-dns-udp.entrypoints=dns-udp
+      - traefik.udp.routers.powerdns-dns-udp.service=powerdns-dns-udp
+      - traefik.udp.services.powerdns-dns-udp.loadbalancer.server.port=53
+
+networks:
+  powerdns:
+    driver: bridge
+  traefik:
+    external: true
