@@ -2,7 +2,7 @@ name: openbao
 
 services:
   postgresql:
-    image: postgres:18-alpine
+    image: postgres:18-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
     container_name: openbao-postgresql
     restart: unless-stopped
     env_file:
@@ -24,7 +24,7 @@ services:
       - no-new-privileges:true
 
   openbao:
-    image: ghcr.io/openbao/openbao-ubi:2
+    image: ghcr.io/openbao/openbao-ubi:2@sha256:4d14f70eb3cd96b18f33960159ab76ecfd284db84469dd36dc6a5adba9d4193d
     container_name: openbao
     restart: unless-stopped
     depends_on:
