@@ -2,7 +2,7 @@ name: openbao
 
 services:
   postgresql:
-    image: postgres:${POSTGRES_TAG:-18-alpine}
+    image: postgres:18-alpine
     container_name: openbao-postgresql
     restart: unless-stopped
     env_file:
@@ -24,7 +24,7 @@ services:
       - no-new-privileges:true
 
   openbao:
-    image: ghcr.io/openbao/openbao-ubi:${OPENBAO_VERSION:-2}
+    image: ghcr.io/openbao/openbao-ubi:2
     container_name: openbao
     restart: unless-stopped
     depends_on:

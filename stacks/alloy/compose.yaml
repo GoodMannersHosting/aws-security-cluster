@@ -2,7 +2,7 @@ name: hcloud-alloy
 
 services:
   alloy:
-    image: grafana/alloy:${ALLOY_TAG:-v1.17.1}
+    image: grafana/alloy:v1.17.1
     container_name: alloy
     restart: unless-stopped
     command:

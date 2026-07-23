@@ -41,7 +41,7 @@ services:
       - /run
 
   traefik:
-    image: traefik:${TRAEFIK_TAG:-v3}
+    image: traefik:v3
     container_name: traefik
     restart: unless-stopped
     depends_on:
