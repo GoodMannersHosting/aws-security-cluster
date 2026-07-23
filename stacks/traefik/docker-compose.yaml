@@ -41,7 +41,7 @@ services:
       - /run
 
   traefik:
-    image: traefik:v3
+    image: traefik:v3@sha256:4299bbed850421258fc5448c2e0e6ad350981d4d335a68de11b92448aedbefe5
     container_name: traefik
     restart: unless-stopped
     depends_on:
