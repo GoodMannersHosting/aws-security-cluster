@@ -1,16 +1,62 @@
-// Grafana Alloy on keeper: host + Traefik metrics, Docker logs -> remote backends.
+// Grafana Alloy on keeper: host metrics + all Docker container logs -> remote backends.
 // Set PROMETHEUS_REMOTE_WRITE_* and LOKI_PUSH_* in secrets.enc.env (Grafana Cloud or self-hosted).
 
 prometheus.exporter.unix "host" {
+  // Host paths are bind-mounted in compose.yaml
+  procfs_path              = "/host/proc"
+  sysfs_path               = "/host/sys"
+  rootfs_path              = "/host/rootfs"
+  udev_data_path           = "/host/udev"
   include_exporter_metrics = true
+
+  filesystem {
+    fs_types_exclude = "^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|tmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$"
+    mount_points_exclude = "^/(dev|proc|run/credentials/.+|sys|var/lib/docker/.+|host/rootfs/(dev|proc|sys|var/lib/docker/.+))($|/)"
+    mount_timeout        = "5s"
+  }
+
+  netclass {
+    ignored_devices = "^(veth.*|cali.*|[a-f0-9]{15})$"
+  }
+
+  netdev {
+    device_exclude = "^(veth.*|cali.*|[a-f0-9]{15})$"
+  }
 }
 
+discovery.relabel "host" {
+  targets = prometheus.exporter.unix.host.targets
+
+  rule {
+    target_label = "instance"
+    replacement  = "keeper"
+  }
+
+  rule {
+    target_label = "job"
+    replacement  = "node"
+  }
+
+  rule {
+    target_label = "cluster"
+    replacement  = "keeper"
+  }
+}
+
+prometheus.scrape "host" {
+  targets         = discovery.relabel.host.output
+  forward_to      = [prometheus.remote_write.remote.receiver]
+  scrape_interval = "30s"
+}
+
+// Discover every container on the Docker host (no filter = all).
 discovery.docker "containers" {
-  host = "unix:///var/run/docker.sock"
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "15s"
 }
 
 discovery.relabel "docker_logs" {
-  targets = discovery.docker.containers.targets
+  targets = []
 
   rule {
     source_labels = ["__meta_docker_container_name"]
@@ -19,17 +65,40 @@ discovery.relabel "docker_logs" {
   }
 
   rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "service_name"
+  }
+
+  rule {
     source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
     target_label  = "compose_project"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "compose_service"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_log_stream"]
+    target_label  = "stream"
   }
 }
 
 loki.source.docker "docker" {
-  host          = "unix:///var/run/docker.sock"
-  targets       = discovery.relabel.docker_logs.output
-  forward_to    = [loki.write.remote.receiver]
-  relabel_rules = discovery.relabel.docker_logs.rules
-  labels        = {"host" = "keeper", "cluster" = "keeper"}
+  host             = "unix:///var/run/docker.sock"
+  targets          = discovery.docker.containers.targets
+  forward_to       = [loki.process.docker.receiver]
+  relabel_rules    = discovery.relabel.docker_logs.rules
+  labels           = {"host" = "keeper", "cluster" = "keeper"}
+  refresh_interval = "15s"
+}
+
+loki.process "docker" {
+  forward_to = [loki.write.remote.receiver]
+
+  stage.docker { }
 }
 
 loki.write "remote" {
@@ -43,16 +112,12 @@ loki.write "remote" {
   }
 }
 
-prometheus.scrape "host" {
-  targets         = prometheus.exporter.unix.host.targets
-  forward_to      = [prometheus.remote_write.remote.receiver]
-  scrape_interval = "30s"
-}
-
 prometheus.scrape "traefik" {
   targets = [{
     __address__ = "traefik:8082",
     job         = "traefik",
+    instance    = "keeper",
+    cluster     = "keeper",
   }]
   metrics_path    = "/metrics"
   forward_to      = [prometheus.remote_write.remote.receiver]

@@ -36,28 +36,14 @@ services:
         condition: service_healthy
     env_file:
       - secrets.enc.env
+    # Image ENTRYPOINT is pdns_server-startup; override so we control startup.
     entrypoint: ["/bin/sh", "-ec"]
     command:
       - |
         exec pdns_server \
-          --no-config \
-          --launch=gpgsql \
-          --autosecondary=yes \
-          --local-address=0.0.0.0 \
-          --local-port=53 \
-          --version-string=powerdns \
-          --loglevel=6 \
-          --query-logging=yes \
-          --webserver=yes \
-          --api=yes \
-          --webserver-address=0.0.0.0 \
-          --webserver-port=8081 \
-          --webserver-loglevel=normal \
-          --webserver-allow-from=10.0.0.0/8,172.16.0.0/12,172.18.0.0/16,192.168.0.0/16,127.0.0.1/32 \
+          --config-dir=/etc/powerdns \
           --api-key="$${PDNS_AUTH_API_KEY}" \
           --webserver-password="$${PDNS_AUTH_WEB_KEY}" \
-          --gpgsql-host=postgresql \
-          --gpgsql-port=5432 \
           --gpgsql-dbname="$${POSTGRES_DB}" \
           --gpgsql-user="$${POSTGRES_USER}" \
           --gpgsql-password="$${POSTGRES_PASS}"
@@ -69,6 +55,12 @@ services:
       interval: 30s
       timeout: 5s
       retries: 5
+    read_only: true
+    tmpfs:
+      - /tmp:uid=953,gid=953,mode=1777
+      - /var/run/pdns:uid=953,gid=953,mode=0755
+    volumes:
+      - ./pdns.conf:/etc/powerdns/pdns.conf:ro
     cap_drop:
       - ALL
     cap_add:

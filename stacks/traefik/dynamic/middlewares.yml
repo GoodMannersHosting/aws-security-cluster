@@ -9,8 +9,8 @@ http:
         period: 1s
     ratelimit-powerdns:
       rateLimit:
-        average: 50
-        burst: 100
+        average: 100
+        burst: 200
         period: 1s
     ratelimit-webhook:
       rateLimit:
