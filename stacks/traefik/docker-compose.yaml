@@ -51,8 +51,15 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "53:53/tcp"
-      - "53:53/udp"
+      # Bind DNS only on the public IP so systemd-resolved keeps 127.0.0.53:53.
+      - target: 53
+        published: 53
+        protocol: tcp
+        host_ip: ${TRAEFIK_DNS_HOST_IP:-5.78.90.164}
+      - target: 53
+        published: 53
+        protocol: udp
+        host_ip: ${TRAEFIK_DNS_HOST_IP:-5.78.90.164}
     volumes:
       - ${TRAEFIK_CONFIG_PATH:-./traefik.yml}:/etc/traefik/traefik.yml:ro
       - ${TRAEFIK_DYNAMIC_PATH:-./dynamic}:/etc/traefik/dynamic:ro

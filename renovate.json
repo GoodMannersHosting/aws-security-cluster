@@ -38,88 +38,102 @@
       "matchManagers": ["github-actions"],
       "matchFileNames": [".github/workflows/bao-sync.yml"],
       "groupName": "bao-sync workflow",
-      "groupSlug": "bao-sync-workflow"
+      "groupSlug": "bao-sync-workflow",
+      "minimumReleaseAge": "7 days"
     },
     {
       "description": "Group OpenBao CLI pin in bao-sync workflow",
       "matchManagers": ["custom.regex"],
       "matchFileNames": [".github/workflows/bao-sync.yml"],
       "groupName": "bao-sync workflow",
-      "groupSlug": "bao-sync-workflow"
+      "groupSlug": "bao-sync-workflow",
+      "minimumReleaseAge": "7 days"
     },
     {
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
-      "automerge": true
+      "automerge": true,
+      "minimumReleaseAge": "7 days"
     },
     {
       "description": "Major updates require manual review before deploy",
       "matchUpdateTypes": ["major"],
-      "automerge": false
+      "automerge": false,
+      "minimumReleaseAge": "7 days"
     },
     {
       "description": "Pin Docker images to SHA digests for immutable deploys",
       "matchDatasources": ["docker"],
-      "pinDigests": true
+      "pinDigests": true,
+      "minimumReleaseAge": "7 days"
     },
     {
       "description": "Ignore floating latest tags on socket-proxy and similar",
       "matchDatasources": ["docker"],
       "matchCurrentValue": "latest",
-      "enabled": false
+      "enabled": false,
+      "minimumReleaseAge": "7 days"
     },
     {
       "description": "Authentik publishes calendar versions",
       "matchPackageNames": ["ghcr.io/goauthentik/server"],
-      "versioning": "regex:^(?<major>\\d{4})\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?<compatibility>.*)?$"
+      "versioning": "regex:^(?<major>\\d{4})\\.(?<minor>\\d+)\\.(?<patch>\\d+)(?<compatibility>.*)?$",
+      "minimumReleaseAge": "7 days"
     },
     {
       "description": "Group container updates per Compose stack",
       "matchManagers": ["docker-compose"],
       "matchFileNames": ["stacks/traefik/**"],
       "groupName": "traefik stack",
-      "groupSlug": "stack-traefik"
+      "groupSlug": "stack-traefik",
+      "minimumReleaseAge": "7 days"
     },
     {
       "description": "Group container updates per Compose stack",
       "matchManagers": ["docker-compose"],
       "matchFileNames": ["stacks/authentik/**"],
       "groupName": "authentik stack",
-      "groupSlug": "stack-authentik"
+      "groupSlug": "stack-authentik",
+      "minimumReleaseAge": "7 days"
     },
     {
       "description": "Group container updates per Compose stack",
       "matchManagers": ["docker-compose"],
       "matchFileNames": ["stacks/openbao/**"],
       "groupName": "openbao stack",
-      "groupSlug": "stack-openbao"
+      "groupSlug": "stack-openbao",
+      "minimumReleaseAge": "7 days"
     },
     {
       "description": "Group container updates per Compose stack",
       "matchManagers": ["docker-compose"],
       "matchFileNames": ["stacks/doco-cd/**"],
       "groupName": "doco-cd stack",
-      "groupSlug": "stack-doco-cd"
+      "groupSlug": "stack-doco-cd",
+      "minimumReleaseAge": "7 days"
     },
     {
       "description": "Group container updates per Compose stack",
       "matchManagers": ["docker-compose"],
       "matchFileNames": ["stacks/postgres/**"],
       "groupName": "postgres stack",
-      "groupSlug": "stack-postgres"
+      "groupSlug": "stack-postgres",
+      "minimumReleaseAge": "7 days"
     },
     {
       "description": "Group container updates per Compose stack",
       "matchManagers": ["docker-compose"],
       "matchFileNames": ["stacks/powerdns/**"],
       "groupName": "powerdns stack",
-      "groupSlug": "stack-powerdns"
+      "groupSlug": "stack-powerdns",
+      "minimumReleaseAge": "7 days"
     },
     {
       "description": "Group container updates per Compose stack",
       "matchManagers": ["docker-compose"],
       "matchFileNames": ["stacks/alloy/**"],
       "groupName": "alloy stack",
-      "groupSlug": "stack-alloy"
+      "groupSlug": "stack-alloy",
+      "minimumReleaseAge": "7 days"
     }
   ]
 }
