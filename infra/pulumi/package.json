@@ -1,0 +1,12 @@
+{
+  "name": "hetzner-infra",
+  "main": "index.ts",
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@pulumi/hcloud": "^1.40",
+    "@pulumi/pulumi": "^3.147"
+  }
+}
