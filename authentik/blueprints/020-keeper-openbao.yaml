@@ -14,7 +14,7 @@ entries:
       scope_name: groups
       description: Group names for OpenBao OIDC RBAC
       expression: |
-        return [group.name for group in user.ak_groups.all()]
+        return [group.name for group in user.groups.all()]
 
   - id: keeper-admin-group
     model: authentik_core.group
@@ -49,6 +49,10 @@ entries:
       name: Keeper OpenBao
       client_type: confidential
       include_claims_in_id_token: true
+      # Authentik 2026.5+ rejects authorize if this list is empty.
+      grant_types:
+        - authorization_code
+        - refresh_token
       issuer_mode: per_provider
       sub_mode: user_username
       authorization_flow: !Find

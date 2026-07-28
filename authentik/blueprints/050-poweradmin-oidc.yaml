@@ -45,7 +45,7 @@ entries:
       scope_name: groups
       description: Group names for OIDC RBAC
       expression: |
-        return [group.name for group in user.ak_groups.all()]
+        return [group.name for group in user.groups.all()]
 
   - id: poweradmin-provider
     model: authentik_providers_oauth2.oauth2provider
@@ -57,6 +57,10 @@ entries:
       client_type: confidential
       client_id: poweradmin
       include_claims_in_id_token: true
+      # Authentik 2026.5+ rejects authorize if this list is empty.
+      grant_types:
+        - authorization_code
+        - refresh_token
       issuer_mode: per_provider
       sub_mode: user_username
       authorization_flow: !Find
