@@ -102,9 +102,9 @@ services:
       PA_PDNS_API_URL: http://authoritative:8081
       PA_PDNS_API_KEY: ${PDNS_AUTH_API_KEY:?set PDNS_AUTH_API_KEY}
       PA_PDNS_SERVER_NAME: localhost
-      DNS_NS1: ${POWERADMIN_DNS_NS1:?set POWERADMIN_DNS_NS1}
-      DNS_NS2: ${POWERADMIN_DNS_NS2:?set POWERADMIN_DNS_NS2}
-      DNS_HOSTMASTER: ${POWERADMIN_DNS_HOSTMASTER:?set POWERADMIN_DNS_HOSTMASTER}
+      DNS_NS1: ${POWERADMIN_DNS_NS1:-ns1.example.com}
+      DNS_NS2: ${POWERADMIN_DNS_NS2:-ns2.example.com}
+      DNS_HOSTMASTER: ${POWERADMIN_DNS_HOSTMASTER:-hostmaster.example.com}
       PA_CREATE_ADMIN: ${POWERADMIN_CREATE_ADMIN:-0}
       PA_ADMIN_USERNAME: ${POWERADMIN_ADMIN_USERNAME:-admin}
       PA_ADMIN_PASSWORD: ${POWERADMIN_ADMIN_PASSWORD:-}
@@ -126,7 +126,7 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik
-      - traefik.http.routers.poweradmin.rule=Host(`${POWERADMIN_HOSTNAME}`)
+      - traefik.http.routers.poweradmin.rule=Host(`${POWERADMIN_HOSTNAME:-poweradmin.goodmanners.services}`)
       - traefik.http.routers.poweradmin.entrypoints=websecure
       - traefik.http.routers.poweradmin.tls=true
       - traefik.http.routers.poweradmin.tls.certresolver=letsencrypt
