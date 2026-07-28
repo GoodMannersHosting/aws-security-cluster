@@ -10,9 +10,11 @@ Each run creates a timestamped directory under **`/opt/backups/keeper/`**:
 |----------|--------|---------|
 | `authentik.dump` | `authentik-postgresql` (`pg_dump -Fc`) | Authentik DB (users, apps, flows, outposts) |
 | `openbao.dump` | `openbao-postgresql` (`pg_dump -Fc`) | OpenBao metadata (mounts, policies, audit config in DB) |
-| `powerdns.dump` | `powerdns-postgresql` (`pg_dump -Fc`) | PowerDNS zones, records, metadata |
+| `powerdns.dump` | `powerdns-postgresql` / `POSTGRES_DB` (`pg_dump -Fc`) | PowerDNS zones, records, metadata |
+| `poweradmin.dump` | `powerdns-postgresql` / `POWERADMIN_DB` (`pg_dump -Fc`) | Poweradmin users, settings, OIDC-linked accounts |
 | `authentik-data.tgz` | `/mnt/sec-hil-1-authentik/{data,media,certs}` | Authentik media and file-backed state |
 | `openbao-data.tgz` | `/mnt/data/openbao` | OpenBao file audit log and local file data |
+| `poweradmin-data.tgz` | `/mnt/data/poweradmin` | Poweradmin config bind-mount |
 | `traefik-acme.tgz` | `/opt/stacks/traefik/acme` | TLS certificates (Let's Encrypt) |
 | `stack-secrets.tgz` | `/opt/stack-secrets` | age key backup, encrypted env copies, RA CA key |
 
@@ -30,6 +32,7 @@ When `BACKUP_S3_BUCKET` is set in **`backup.env`**:
 s3://BUCKET/keeper/YYYYMMDDTHHMMSSZ/authentik.dump
 s3://BUCKET/keeper/YYYYMMDDTHHMMSSZ/openbao.dump
 s3://BUCKET/keeper/YYYYMMDDTHHMMSSZ/powerdns.dump
+s3://BUCKET/keeper/YYYYMMDDTHHMMSSZ/poweradmin.dump
 s3://BUCKET/keeper/YYYYMMDDTHHMMSSZ/keeper-YYYYMMDDTHHMMSSZ.tar.gz   # optional full bundle
 ```
 
@@ -49,8 +52,8 @@ tail -50 /var/log/hcloud-backup.log
 Restore is destructive for databases and extracted archives. Plan downtime and test on a staging host first.
 
 1. Pick a backup stamp (directory name or S3 prefix).
-2. Stop application containers (OpenBao, Authentik, PowerDNS, Traefik, Doco-CD, Alloy) — Postgres keeps running for `pg_restore`.
-3. Restore Postgres dumps with **`pg_restore --clean --if-exists`**.
+2. Stop application containers (OpenBao, Authentik, PowerDNS, Poweradmin, Traefik, Doco-CD, Alloy) — Postgres keeps running for `pg_restore`.
+3. Restore Postgres dumps with **`pg_restore --clean --if-exists`** (`poweradmin.dump` creates `POWERADMIN_DB` if missing).
 4. Extract tarballs over data paths.
 5. Reconcile GitOps and verify health.
 
@@ -82,6 +85,7 @@ sudo /opt/hcloud-security-cluster/stacks/ops/restore.sh \
 - **OpenBao:** AWS KMS auto-unseal should unseal on start; confirm `https://keeper.goodmanners.services/v1/sys/health`.
 - **Authentik:** Confirm login at `https://auth.goodmanners.services`; blueprints reload from git mount on worker restart.
 - **Traefik:** ACME restore avoids re-issuing certs; confirm HTTPS on all hostnames.
+- **PowerDNS / Poweradmin:** Confirm API at `https://pdns.goodmanners.services` and UI/OIDC at `https://poweradmin.goodmanners.services`.
 - **SOPS / age:** If `stack-secrets.tgz` included `sops_age_key.txt`, confirm `/opt/stacks/doco-cd/sops_age_key.txt` matches before Doco-CD deploys.
 - **GitOps secrets:** Repo `secrets.enc.env` files are authoritative for stack env; host `/opt/stacks/*/.env` only needed for cold-start and encrypt workflow.
 
@@ -91,7 +95,8 @@ sudo /opt/hcloud-security-cluster/stacks/ops/restore.sh \
 |------|---------|
 | Authentik only | `authentik.dump` + optional `authentik-data.tgz` |
 | OpenBao only | `openbao.dump` + optional `openbao-data.tgz` |
-| PowerDNS only | `powerdns.dump` |
+| PowerDNS zones only | `powerdns.dump` |
+| Poweradmin only | `poweradmin.dump` + optional `poweradmin-data.tgz` |
 | TLS only | `traefik-acme.tgz` → `/opt/stacks/traefik/` |
 | Secrets keys only | `stack-secrets.tgz` → `/` |
 

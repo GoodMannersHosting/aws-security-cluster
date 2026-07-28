@@ -10,6 +10,7 @@ entries:
     identifiers:
       scope_name: groups
     attrs:
+      name: OIDC groups
       scope_name: groups
       description: Group names for OpenBao OIDC RBAC
       expression: |

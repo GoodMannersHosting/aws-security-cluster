@@ -11,6 +11,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASS:?set POSTGRES_PASS}
       POSTGRES_DB: ${POSTGRES_DB:-pdns}
+      POWERADMIN_DB: ${POWERADMIN_DB:-poweradmin}
     healthcheck:
       test:
         - CMD-SHELL
@@ -22,6 +23,7 @@ services:
     volumes:
       - ${POWERDNS_POSTGRES_DATA:-/mnt/data/postgres/powerdns}:/var/lib/postgresql
       - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./init-poweradmin-db.sh:/docker-entrypoint-initdb.d/02-poweradmin-db.sh:ro
     networks:
       - powerdns
     security_opt:
@@ -86,6 +88,75 @@ services:
       - traefik.udp.routers.powerdns-dns-udp.entrypoints=dns-udp
       - traefik.udp.routers.powerdns-dns-udp.service=powerdns-dns-udp
       - traefik.udp.services.powerdns-dns-udp.loadbalancer.server.port=53
+
+  poweradmin:
+    image: docker.io/poweradmin/poweradmin:4.3.4@sha256:6650e7d37b62f5c414f59064c677334ecfa928cd5ef5afbd77f6de65d4a526d4
+    container_name: poweradmin
+    restart: unless-stopped
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      authoritative:
+        condition: service_healthy
+    env_file:
+      - secrets.enc.env
+    environment:
+      # App DB on the stack Postgres; DNS data stays in POSTGRES_DB via API mode.
+      DB_TYPE: pgsql
+      DB_HOST: postgresql
+      DB_PORT: "5432"
+      DB_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      DB_PASS: ${POSTGRES_PASS:?set POSTGRES_PASS}
+      DB_NAME: ${POWERADMIN_DB:-poweradmin}
+      PA_DNS_BACKEND: api
+      PA_PDNS_API_URL: http://authoritative:8081
+      PA_PDNS_API_KEY: ${PDNS_AUTH_API_KEY:?set PDNS_AUTH_API_KEY}
+      PA_PDNS_SERVER_NAME: localhost
+      DNS_NS1: ${POWERADMIN_DNS_NS1:-ns1.example.com}
+      DNS_NS2: ${POWERADMIN_DNS_NS2:-ns2.example.com}
+      DNS_HOSTMASTER: ${POWERADMIN_DNS_HOSTMASTER:-hostmaster.example.com}
+      PA_CREATE_ADMIN: ${POWERADMIN_CREATE_ADMIN:-0}
+      PA_ADMIN_USERNAME: ${POWERADMIN_ADMIN_USERNAME:-admin}
+      PA_ADMIN_PASSWORD: ${POWERADMIN_ADMIN_PASSWORD:-}
+      PA_ADMIN_EMAIL: ${POWERADMIN_ADMIN_EMAIL:-admin@example.com}
+      PA_ADMIN_FULLNAME: ${POWERADMIN_ADMIN_FULLNAME:-Administrator}
+      # Authentik OIDC (generic provider); client secret from Authentik UI after blueprint.
+      PA_OIDC_ENABLED: ${PA_OIDC_ENABLED:-true}
+      PA_OIDC_AUTO_PROVISION: ${PA_OIDC_AUTO_PROVISION:-true}
+      PA_OIDC_LINK_BY_EMAIL: ${PA_OIDC_LINK_BY_EMAIL:-true}
+      PA_OIDC_SYNC_USER_INFO: ${PA_OIDC_SYNC_USER_INFO:-true}
+      PA_OIDC_DEFAULT_PERMISSION_TEMPLATE: ${PA_OIDC_DEFAULT_PERMISSION_TEMPLATE:-Guest}
+      PA_OIDC_PERMISSION_TEMPLATE_MAPPING: ${PA_OIDC_PERMISSION_TEMPLATE_MAPPING:-poweradmin-admin=Administrator,poweradmin-viewer=Viewer}
+      PA_OIDC_GENERIC_ENABLED: ${PA_OIDC_GENERIC_ENABLED:-true}
+      PA_OIDC_GENERIC_NAME: Authentik
+      PA_OIDC_GENERIC_DISPLAY_NAME: Sign in with Authentik
+      PA_OIDC_GENERIC_CLIENT_ID: ${PA_OIDC_GENERIC_CLIENT_ID:-poweradmin}
+      PA_OIDC_GENERIC_CLIENT_SECRET: ${PA_OIDC_GENERIC_CLIENT_SECRET:?set PA_OIDC_GENERIC_CLIENT_SECRET}
+      PA_OIDC_GENERIC_AUTO_DISCOVERY: "true"
+      PA_OIDC_GENERIC_METADATA_URL: ${PA_OIDC_GENERIC_METADATA_URL:-https://auth.goodmanners.services/application/o/poweradmin/.well-known/openid-configuration}
+      PA_OIDC_GENERIC_SCOPES: ${PA_OIDC_GENERIC_SCOPES:-openid profile email groups}
+      PA_OIDC_GENERIC_GROUPS_ATTR: ${PA_OIDC_GENERIC_GROUPS_ATTR:-groups}
+    volumes:
+      - ${POWERADMIN_DATA_ROOT:-/mnt/data/poweradmin}/config:/config
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - powerdns
+      - traefik
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik
+      - traefik.http.routers.poweradmin.rule=Host(`${POWERADMIN_HOSTNAME:-poweradmin.goodmanners.services}`)
+      - traefik.http.routers.poweradmin.entrypoints=websecure
+      - traefik.http.routers.poweradmin.tls=true
+      - traefik.http.routers.poweradmin.tls.certresolver=letsencrypt
+      - traefik.http.routers.poweradmin.middlewares=security-headers@file
+      - traefik.http.services.poweradmin.loadbalancer.server.port=80
 
 networks:
   powerdns:

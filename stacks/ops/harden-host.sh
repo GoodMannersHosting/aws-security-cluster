@@ -44,10 +44,10 @@ EOF
 
 fix_secret_permissions() {
   log "secret and stack file permissions"
-  mkdir -p "${STACKS}"/{traefik,authentik,openbao,alloy,doco-cd} \
+  mkdir -p "${STACKS}"/{traefik,authentik,openbao,powerdns,alloy,doco-cd} \
     /opt/stack-secrets "${BACKUPS}"
   chmod 700 /opt/stack-secrets "${BACKUPS}" 2>/dev/null || true
-  for env in traefik authentik openbao alloy doco-cd; do
+  for env in traefik authentik openbao powerdns alloy doco-cd; do
     [[ -f "${STACKS}/${env}/.env" ]] && chmod 600 "${STACKS}/${env}/.env"
   done
   if [[ -d "${STACKS}/openbao/aws" ]]; then
