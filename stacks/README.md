@@ -192,7 +192,8 @@ Alloy UI listens on **127.0.0.1:12345** inside the container only (not exposed v
 
 ## Security notes
 
-- Authentik **worker** uses **`DOCKER_HOST=tcp://socket-proxy:2375`** (no raw docker.sock).
+- Authentik **worker** uses **`DOCKER_HOST=tcp://socket-proxy:2375`** (no raw docker.sock). Traefik uses its own socket-proxy service (`traefik-socket-proxy` container) on the same pattern.
+- If Traefik deploy fails with **container name `/socket-proxy` already in use**, remove the orphan (`docker rm -f socket-proxy`) or tear down a legacy `traefik` compose project, then redeploy.
 - OpenBao mounts **`OPENBAO_AWS_CREDS_DIR`** at **`/aws`** for KMS unseal.
 - Traefik dashboard and Doco-CD UI: Authentik forward auth (`platform-admin`); webhook path rate-limited only.
 - OpenBao ingress: Traefik rate limiting.

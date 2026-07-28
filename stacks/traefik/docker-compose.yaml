@@ -1,3 +1,5 @@
+name: hcloud-traefik
+
 networks:
   traefik:
     name: traefik
@@ -6,7 +8,8 @@ networks:
 services:
   socket-proxy:
     image: tecnativa/docker-socket-proxy:latest
-    container_name: socket-proxy
+    # Unique name avoids clash with orphans from a legacy compose project.
+    container_name: traefik-socket-proxy
     restart: unless-stopped
     networks:
       - traefik
