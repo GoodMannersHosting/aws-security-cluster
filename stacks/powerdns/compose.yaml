@@ -87,6 +87,52 @@ services:
       - traefik.udp.routers.powerdns-dns-udp.service=powerdns-dns-udp
       - traefik.udp.services.powerdns-dns-udp.loadbalancer.server.port=53
 
+  poweradmin:
+    image: docker.io/poweradmin/poweradmin:stable
+    container_name: poweradmin
+    restart: unless-stopped
+    depends_on:
+      authoritative:
+        condition: service_healthy
+    env_file:
+      - secrets.enc.env
+    environment:
+      DB_TYPE: sqlite
+      PA_DNS_BACKEND: api
+      PA_PDNS_API_URL: http://authoritative:8081
+      PA_PDNS_API_KEY: ${PDNS_AUTH_API_KEY:?set PDNS_AUTH_API_KEY}
+      PA_PDNS_SERVER_NAME: localhost
+      DNS_NS1: ${POWERADMIN_DNS_NS1:?set POWERADMIN_DNS_NS1}
+      DNS_NS2: ${POWERADMIN_DNS_NS2:?set POWERADMIN_DNS_NS2}
+      DNS_HOSTMASTER: ${POWERADMIN_DNS_HOSTMASTER:?set POWERADMIN_DNS_HOSTMASTER}
+      PA_CREATE_ADMIN: ${POWERADMIN_CREATE_ADMIN:-0}
+      PA_ADMIN_USERNAME: ${POWERADMIN_ADMIN_USERNAME:-admin}
+      PA_ADMIN_PASSWORD: ${POWERADMIN_ADMIN_PASSWORD:-}
+      PA_ADMIN_EMAIL: ${POWERADMIN_ADMIN_EMAIL:-admin@example.com}
+      PA_ADMIN_FULLNAME: ${POWERADMIN_ADMIN_FULLNAME:-Administrator}
+    volumes:
+      - ${POWERADMIN_DATA_ROOT:-/mnt/data/poweradmin}/config:/config
+      - ${POWERADMIN_DATA_ROOT:-/mnt/data/poweradmin}/db:/db
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - powerdns
+      - traefik
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik
+      - traefik.http.routers.poweradmin.rule=Host(`${POWERADMIN_HOSTNAME}`)
+      - traefik.http.routers.poweradmin.entrypoints=websecure
+      - traefik.http.routers.poweradmin.tls=true
+      - traefik.http.routers.poweradmin.tls.certresolver=letsencrypt
+      - traefik.http.routers.poweradmin.middlewares=security-headers@file
+      - traefik.http.services.poweradmin.loadbalancer.server.port=80
+
 networks:
   powerdns:
     driver: bridge

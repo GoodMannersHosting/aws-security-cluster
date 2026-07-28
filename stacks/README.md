@@ -25,7 +25,7 @@ sudo bash /opt/hcloud-security-cluster/stacks/doco-cd/install-prod.sh
 ## Prerequisites
 
 - Docker Engine and Docker Compose v2
-- DNS A/AAAA for `auth`, `keeper`, `pdns`, `traefik`, and `doco-cd` hostnames
+- DNS A/AAAA for `auth`, `keeper`, `pdns`, `poweradmin`, `traefik`, and `doco-cd` hostnames
 - External `traefik` Docker network (created by the traefik stack on first boot)
 - **`age`** and **`sops`** on the host for encrypting secrets into git
 
@@ -41,7 +41,7 @@ Doco-CD applies stacks in this order (see `.doco-cd.yml`):
 1. **traefik** — ingress, ACME resolver `letsencrypt`
 2. **authentik** — Postgres, server, worker (via socket-proxy), embedded outpost routes
 3. **openbao** — Postgres, AWS KMS auto-unseal
-4. **powerdns** — authoritative DNS server + PostgreSQL backend (DNS TCP/UDP 53 and API routed via Traefik)
+4. **powerdns** — authoritative DNS server + PostgreSQL backend + Poweradmin UI (DNS TCP/UDP 53 and API/UI routed via Traefik)
 5. **alloy** — metrics/logs collector (remote_write + Loki push; no local Grafana)
 6. **doco-cd** — self-managed GitOps controller
 
