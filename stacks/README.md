@@ -52,7 +52,8 @@ docker exec -it powerdns-postgresql \
 ```
 
 5. **alloy** — metrics/logs collector (remote_write + Loki push; no local Grafana)
-6. **doco-cd** — self-managed GitOps controller
+
+**Doco-CD** is host-managed (`install-prod.sh` / `cold-start-doco-cd.sh`), not a GitOps deploy target in `.doco-cd.yml`.
 
 After Doco-CD is up, use **`stacks/ops/reconcile-gitops.sh`** (or push to `main`). Do not run compose from `/opt/stacks/*/compose.yaml`.
 
@@ -87,7 +88,7 @@ Never commit plaintext **`stacks/*/.env`**, **`bao/config.env`**, or **`sops_age
 
 The UI at `https://doco-cd.goodmanners.services` uses Authentik forward auth. **`/v1/webhook`** and **`/v1/health`** bypass forward auth.
 
-**Doco-CD self-deploy:** first adoption uses **`stacks/ops/bootstrap-doco-self-deploy.sh`**. After compose changes to the doco-cd stack, run with **`FORCE_BOOTSTRAP=1`**.
+**Doco-CD updates:** apply compose/env changes on the host with **`stacks/doco-cd/install-prod.sh`** or **`stacks/ops/cold-start-doco-cd.sh`** (not via webhook GitOps). Legacy **`bootstrap-doco-self-deploy.sh`** remains for one-off label repair if needed.
 
 For a greenfield VPS with no existing `/opt/stacks`, use **`stacks/doco-cd/bootstrap.sh`**.
 
