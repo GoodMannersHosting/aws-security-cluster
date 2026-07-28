@@ -30,7 +30,8 @@ sudo bash /opt/hcloud-security-cluster/stacks/doco-cd/install-prod.sh
 - **`age`** and **`sops`** on the host for encrypting secrets into git
 
 ```bash
-sudo mkdir -p /mnt/data/postgres/openbao /mnt/data/openbao /mnt/data/postgres/powerdns /var/log/traefik
+sudo mkdir -p /mnt/data/postgres/openbao /mnt/data/openbao /mnt/data/postgres/powerdns /mnt/data/poweradmin/config /var/log/traefik
+sudo chown -R 70:70 /mnt/data/postgres/powerdns
 sudo touch /var/log/traefik/access.log
 ```
 
@@ -42,6 +43,14 @@ Doco-CD applies stacks in this order (see `.doco-cd.yml`):
 2. **authentik** — Postgres, server, worker (via socket-proxy), embedded outpost routes
 3. **openbao** — Postgres, AWS KMS auto-unseal
 4. **powerdns** — authoritative DNS server + PostgreSQL backend + Poweradmin UI (DNS TCP/UDP 53 and API/UI routed via Traefik)
+
+Poweradmin stores its own users/settings in Postgres database `POWERADMIN_DB` (default `poweradmin`) on the same Postgres service; zone data stays in `POSTGRES_DB` and is managed via the PowerDNS API. Fresh volumes get `poweradmin` from `init-poweradmin-db.sh`. On an existing Postgres volume:
+
+```bash
+docker exec -it powerdns-postgresql \
+  psql -U "$POSTGRES_USER" -c "CREATE DATABASE poweradmin OWNER $POSTGRES_USER"
+```
+
 5. **alloy** — metrics/logs collector (remote_write + Loki push; no local Grafana)
 6. **doco-cd** — self-managed GitOps controller
 
@@ -92,10 +101,12 @@ Git-managed blueprints in **`authentik/blueprints/`** mount into the worker at *
 | `020-keeper-openbao.yaml` | Keeper OIDC app, groups scope |
 | `030-doco-cd-forward-auth.yaml` | Doco-CD forward auth provider + outpost |
 | `040-brand-goodmanners.yaml` | Brand for auth hostname |
+| `050-poweradmin-oidc.yaml` | Poweradmin OIDC app + access groups |
 
 After blueprints apply:
 
 - Add your user to **`platform-admin`** (Doco-CD UI) and **`keeper-admin`** (OpenBao OIDC admin)
+- Add DNS admins to **`poweradmin-admin`** (or viewers to **`poweradmin-viewer`**); copy the Poweradmin provider client secret into powerdns secrets
 - OpenBao OIDC and policies: repo **`bao/`** (`setup.sh` with `config.env` on the host — not in git)
 
 If blueprint discovery fails:

@@ -57,6 +57,9 @@ fetch_s3_backup() {
   run env "${aws_env[@]}" aws s3 cp "${s3_base}/authentik.dump" "${dest}/authentik.dump"
   run env "${aws_env[@]}" aws s3 cp "${s3_base}/openbao.dump" "${dest}/openbao.dump"
   run env "${aws_env[@]}" aws s3 cp "${s3_base}/powerdns.dump" "${dest}/powerdns.dump"
+  if env "${aws_env[@]}" aws s3 ls "${s3_base}/poweradmin.dump" >/dev/null 2>&1; then
+    run env "${aws_env[@]}" aws s3 cp "${s3_base}/poweradmin.dump" "${dest}/poweradmin.dump"
+  fi
   local bundle="${BACKUP_ROOT}/keeper-${stamp}.tar.gz"
   if env "${aws_env[@]}" aws s3 ls "${s3_base}/keeper-${stamp}.tar.gz" >/dev/null 2>&1; then
     run env "${aws_env[@]}" aws s3 cp \
@@ -78,6 +81,23 @@ restore_pg() {
   fi
   run docker exec -i "${ctn}" sh -c \
     'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists' \
+    <"${dump}"
+}
+
+restore_pg_db() {
+  local ctn="$1" dump="$2" db="$3"
+  [[ -f "${dump}" ]] || die "missing ${dump}"
+  log "Restore PostgreSQL ${ctn}/${db} from ${dump}"
+  if [[ "${STOP_STACKS}" == "1" ]]; then
+    run docker stop "${ctn}"
+    run docker start "${ctn}"
+    sleep 5
+  fi
+  run docker exec "${ctn}" sh -c \
+    "psql -U \"\$POSTGRES_USER\" -tc \"SELECT 1 FROM pg_database WHERE datname='${db}'\" | grep -q 1 || \
+     psql -U \"\$POSTGRES_USER\" -c \"CREATE DATABASE ${db} OWNER \\\"\$POSTGRES_USER\\\"\""
+  run docker exec -i "${ctn}" sh -c \
+    "pg_restore -U \"\$POSTGRES_USER\" -d \"${db}\" --clean --if-exists" \
     <"${dump}"
 }
 
@@ -119,16 +139,22 @@ main() {
 
   if [[ "${STOP_STACKS}" == "1" && "${DRY_RUN}" != "1" ]]; then
     log "Stopping application containers (Postgres stays up)"
-    docker stop openbao authentik-server authentik-worker powerdns-authoritative traefik doco-cd alloy \
+    docker stop openbao authentik-server authentik-worker \
+      powerdns-authoritative poweradmin traefik doco-cd alloy \
       2>/dev/null || true
   fi
 
   restore_pg authentik-postgresql "${backup_dir}/authentik.dump"
   restore_pg openbao-postgresql "${backup_dir}/openbao.dump"
   restore_pg powerdns-postgresql "${backup_dir}/powerdns.dump"
+  if [[ -f "${backup_dir}/poweradmin.dump" ]]; then
+    restore_pg_db powerdns-postgresql "${backup_dir}/poweradmin.dump" \
+      "${POWERADMIN_DB:-poweradmin}"
+  fi
 
   restore_tar "${backup_dir}/authentik-data.tgz" /mnt/sec-hil-1-authentik
   restore_tar "${backup_dir}/openbao-data.tgz" /mnt/data
+  restore_tar "${backup_dir}/poweradmin-data.tgz" /mnt/data
   restore_tar "${backup_dir}/traefik-acme.tgz" /opt/stacks/traefik
   if [[ -f "${backup_dir}/stack-secrets.tgz" ]]; then
     restore_tar "${backup_dir}/stack-secrets.tgz" /

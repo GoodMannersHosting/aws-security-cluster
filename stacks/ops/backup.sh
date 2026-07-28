@@ -33,15 +33,32 @@ dump_pg() {
     >"${DEST}/${out}"
 }
 
+dump_pg_db() {
+  local ctn="$1" db="$2" out="$3"
+  docker exec "${ctn}" sh -c \
+    "pg_dump -U \"\$POSTGRES_USER\" -d \"${db}\" -Fc -Z 9" \
+    >"${DEST}/${out}"
+}
+
 log "PostgreSQL dumps (custom format, gzip-compressed)"
 dump_pg authentik-postgresql authentik.dump
 dump_pg openbao-postgresql openbao.dump
 dump_pg powerdns-postgresql powerdns.dump
+poweradmin_db="${POWERADMIN_DB:-poweradmin}"
+if docker exec powerdns-postgresql sh -c \
+  "psql -U \"\$POSTGRES_USER\" -tc \"SELECT 1 FROM pg_database WHERE datname='${poweradmin_db}'\"" \
+  | grep -q 1; then
+  dump_pg_db powerdns-postgresql "${poweradmin_db}" poweradmin.dump
+else
+  log "skip poweradmin.dump (${poweradmin_db} not present yet)"
+fi
 
 log "Archive data directories"
 tar -czf "${DEST}/authentik-data.tgz" \
   -C /mnt/sec-hil-1-authentik data media certs 2>/dev/null || true
 tar -czf "${DEST}/openbao-data.tgz" -C /mnt data/openbao 2>/dev/null || true
+tar -czf "${DEST}/poweradmin-data.tgz" \
+  -C /mnt/data poweradmin 2>/dev/null || true
 tar -czf "${DEST}/traefik-acme.tgz" \
   -C /opt/stacks/traefik acme 2>/dev/null || true
 
@@ -82,6 +99,9 @@ upload_s3() {
   s3_cp "${DEST}/authentik.dump" "${s3_base}/authentik.dump"
   s3_cp "${DEST}/openbao.dump" "${s3_base}/openbao.dump"
   s3_cp "${DEST}/powerdns.dump" "${s3_base}/powerdns.dump"
+  if [[ -f "${DEST}/poweradmin.dump" ]]; then
+    s3_cp "${DEST}/poweradmin.dump" "${s3_base}/poweradmin.dump"
+  fi
 
   if [[ "${BACKUP_S3_FULL_BUNDLE}" == "1" ]]; then
     local bundle="${BACKUP_ROOT}/keeper-${STAMP}.tar.gz"
