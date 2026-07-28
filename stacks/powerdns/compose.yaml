@@ -175,7 +175,7 @@ services:
       - traefik.http.routers.poweradmin.tls=true
       - traefik.http.routers.poweradmin.tls.certresolver=letsencrypt
       - traefik.http.routers.poweradmin.middlewares=security-headers@file
-      - traefik.http.services.poweradmin.loadbalancer.server.port=80
+      - traefik.http.services.poweradmin.loadbalancer.server.port=8080
 
 networks:
   powerdns:
