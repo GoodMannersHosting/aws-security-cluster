@@ -32,6 +32,7 @@ sudo bash /opt/hcloud-security-cluster/stacks/doco-cd/install-prod.sh
 ```bash
 sudo mkdir -p /mnt/data/postgres/openbao /mnt/data/openbao /mnt/data/postgres/powerdns /mnt/data/poweradmin/config /var/log/traefik
 sudo chown -R 70:70 /mnt/data/postgres/powerdns
+sudo chown -R 82:82 /mnt/data/poweradmin
 sudo touch /var/log/traefik/access.log
 ```
 

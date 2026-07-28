@@ -136,11 +136,13 @@ services:
       PA_OIDC_GENERIC_METADATA_URL: ${PA_OIDC_GENERIC_METADATA_URL:-https://auth.goodmanners.services/application/o/poweradmin/.well-known/openid-configuration}
       PA_OIDC_GENERIC_SCOPES: ${PA_OIDC_GENERIC_SCOPES:-openid profile email groups}
       PA_OIDC_GENERIC_GROUPS_ATTR: ${PA_OIDC_GENERIC_GROUPS_ATTR:-groups}
+      # Writable path for settings.php when root FS is read-only (default is /app/config).
+      PA_CONFIG_PATH: /config/settings.php
     volumes:
       - ${POWERADMIN_DATA_ROOT:-/mnt/data/poweradmin}/config:/config
     read_only: true
     tmpfs:
-      - /tmp
+      - /tmp:rw,noexec,nosuid
     security_opt:
       - no-new-privileges:true
     cap_drop:
