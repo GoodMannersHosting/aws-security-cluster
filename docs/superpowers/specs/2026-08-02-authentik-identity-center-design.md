@@ -10,12 +10,12 @@ AWS access today is not driven by Authentik groups through IAM Identity Center. 
 
 ## Goals
 
-- Register Authentik as the external SAML IdP for the already-enabled org IAM Identity Center.
+- Use Authentik as the external SAML IdP for the already-enabled org IAM Identity Center (identity-source switch is a one-time bootstrap; see Approach).
 - Provision users/groups into Identity Center via SCIM from Authentik.
-- Create Authentik groups `aws-admins` and `aws-viewers`, plus the SAML and SCIM application/provider resources in Pulumi (`@pulumiverse/authentik`).
+- Create Authentik groups `aws-admins` and `aws-viewers`, plus the SAML and SCIM application/provider resources in Pulumi (`@pulumi/authentik`).
 - Create IC permission sets: `AWSAdministratorAccess` for `aws-admins`, `AWSReadOnlyAccess` for `aws-viewers`.
 - Assign both permission sets to the current workload account (more accounts later via config).
-- Live in the existing `infra/aws` / `prod` stack; CI fetches the Authentik token from OpenBao before `pulumi up`.
+- Live in the existing `infra/aws` / `prod` stack; CI fetches Authentik API + SCIM tokens from OpenBao before `pulumi up`.
 
 ## Non-goals
 
@@ -27,7 +27,9 @@ AWS access today is not driven by Authentik groups through IAM Identity Center. 
 
 ## Approach
 
-Dual-provider module in `infra/aws`: `@pulumi/aws` (workload account default + AssumeRole into org management for SSO Admin / Identity Store APIs) and `@pulumiverse/authentik`. Document two-phase group assignment behavior inside the module (SCIM groups may not exist until after the first successful sync).
+Dual-provider module in `infra/aws`: `@pulumi/aws` (workload account default + AssumeRole into org management for SSO Admin / Identity Store APIs) and `@pulumi/authentik` (official bridged provider; not the older `@pulumiverse/authentik` name). Document two-phase group assignment behavior inside the module (SCIM groups may not exist until after the first successful sync).
+
+**AWS limitation:** Changing the IAM Identity Center identity source to an external SAML IdP and enabling SCIM are not available as first-class Pulumi/Terraform resources today (console / support-assisted APIs only). Treat that as a one-time bootstrap that yields ACS URL, audience, SCIM endpoint, and SCIM access token. Pulumi then owns Authentik SAML/SCIM, IC permission sets, and account assignments, consuming those bootstrap values from config / OpenBao.
 
 ## Architecture
 
@@ -46,10 +48,14 @@ Pulumi module: identityCenterAuthentik.ts
 
   AWS (@pulumi/aws, management provider)
     lookup existing org IC instance
-    external SAML IdP (Authentik metadata)
-    SCIM endpoint + access token (fed to Authentik)
     permission sets + account assignments
       (after SCIM sync; second apply if groups not yet present)
+
+  One-time bootstrap (console; not Pulumi)
+    change IC identity source -> external IdP
+    upload Authentik IdP metadata; enable SCIM
+    store ACS/audience/SCIM URL in Pulumi config;
+    store SCIM token (+ Authentik API token) in OpenBao
 
 Existing blueprints unchanged.
 ```
@@ -81,13 +87,13 @@ Non-secret knobs only: Authentik URL, management role ARN, workload account ID, 
 
 ## Apply order
 
-1. Lookup org IC instance (management provider) → ACS URL, issuer, SCIM base URL.
-2. Create IC permission sets and attach AWS managed policies (`AWSAdministratorAccess`, `AWSReadOnlyAccess`). Permission sets are org-scoped; account targeting happens only in assignments (step 7).
+0. **Bootstrap (once, outside Pulumi):** In the org management account console, change Identity Center identity source to External IdP; download SP metadata (ACS + audience). Create Authentik SAML app (or let first Pulumi apply create it once ACS/audience are in config); download Authentik IdP metadata; upload to IC; enable SCIM; store SCIM endpoint URL in Pulumi config and SCIM token in OpenBao.
+1. Lookup org IC instance (management provider) for instance ARN / identity store ID.
+2. Create IC permission sets and attach AWS managed policies (`AWSAdministratorAccess`, `AWSReadOnlyAccess`). Permission sets are org-scoped; account targeting happens only in assignments (step 6).
 3. Create Authentik groups `aws-admins` / `aws-viewers` (idempotent if already present).
-4. Create Authentik SAML provider + application using IC ACS/issuer; signing material from Authentik cert keypair.
-5. Register Authentik as IC external IdP using Authentik SAML metadata.
-6. Enable IC SCIM; create SCIM bearer token as a Pulumi secret → wire into Authentik SCIM provider (URL + token).
-7. Look up Identity Store groups by name after SCIM sync. If missing on first apply, skip assignments and set stack output `assignmentsPending: true`. Second `pulumi up` (after SCIM has synced groups) creates account assignments for the workload account ID from config.
+4. Create Authentik SAML provider + application using config ACS URL + audience; NameID = email mapping; signing cert from Authentik.
+5. Create Authentik SCIM provider (compatibility mode `aws`) with SCIM URL from config and token from OpenBao; attach as backchannel provider on the AWS application. Align SCIM `userName` with SAML NameID (email).
+6. Look up Identity Store groups by name after SCIM sync. If missing on first apply, skip assignments and set stack output `assignmentsPending: true`. Second `pulumi up` (after SCIM has synced groups) creates account assignments for the workload account ID from config.
 
 Document this two-phase behavior in the module and stack docs.
 
@@ -95,8 +101,8 @@ Document this two-phase behavior in the module and stack docs.
 
 | Secret | Source | Destination |
 |--------|--------|-------------|
-| Authentik API token | OpenBao (fetched at deploy) | Pulumi Authentik provider (env/config, not committed) |
-| IC SCIM bearer | Created by Pulumi | Authentik SCIM provider resource state |
+| Authentik API token | OpenBao (fetched at deploy via GHA JWT) | Pulumi Authentik provider (`AUTHENTIK_TOKEN`, not committed) |
+| IC SCIM bearer | OpenBao (written once after console SCIM enable) | Authentik SCIM provider resource |
 
 No long-lived AWS access keys for this path. Mask tokens in CI logs.
 
