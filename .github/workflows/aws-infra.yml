@@ -1,0 +1,76 @@
+name: Apply AWS infra
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "infra/aws/**"
+      - ".github/workflows/aws-infra.yml"
+  workflow_dispatch:
+    inputs:
+      preview_only:
+        description: "Run pulumi preview instead of up"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: aws-infra-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PULUMI_STACK: prod
+  WORKING_DIRECTORY: infra/aws
+
+jobs:
+  pulumi:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: infra/aws/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@ececac1a45f3b08a01d2dd070d28d111c5fe6722 # v4.1.0
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+          role-session-name: gha-keeper-aws-infra
+
+      - name: Resolve Pulumi command
+        id: cmd
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PREVIEW_ONLY: ${{ github.event.inputs.preview_only }}
+        run: |
+          set -euo pipefail
+          if [ "${EVENT_NAME}" = "workflow_dispatch" ] && [ "${PREVIEW_ONLY}" = "true" ]; then
+            echo "command=preview" >> "${GITHUB_OUTPUT}"
+          else
+            echo "command=up" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Pulumi
+        uses: pulumi/actions@8582a9e8cc630786854029b4e09281acd6794b58 # v6.6.1
+        with:
+          command: ${{ steps.cmd.outputs.command }}
+          stack-name: ${{ env.PULUMI_STACK }}
+          work-dir: ${{ env.WORKING_DIRECTORY }}
+          cloud-url: s3://pulumi-state-2e089842
+          upsert: false
+        # State + secrets use AWS OIDC (S3 backend + alias/pulumi-state KMS). No Pulumi Cloud token.

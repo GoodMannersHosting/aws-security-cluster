@@ -1,0 +1,13 @@
+config:
+  aws:region: us-east-1
+  keeper-aws-infra:githubOrg: GoodMannersHosting
+  keeper-aws-infra:githubRepo: aws-security-cluster
+  keeper-aws-infra:hostedZoneName: goodmanners.services
+  # Uncomment if the account already has a GitHub OIDC provider:
+  # keeper-aws-infra:githubOidcProviderArn: arn:aws:iam::ACCOUNT:oidc-provider/token.actions.githubusercontent.com
+  # Optional: create Roles Anywhere role trusted by this trust anchor:
+  # keeper-aws-infra:rolesAnywhereTrustAnchorArn: arn:aws:rolesanywhere:us-east-1:ACCOUNT:trust-anchor/TA_ID
+
+  keeper-aws-infra:githubOidcProviderArn: arn:aws:iam::417568418531:oidc-provider/token.actions.githubusercontent.com
+secretsprovider: awskms://alias/pulumi-state?region=us-east-1
+encryptedkey: AQICAHj9/Os2L4O1FiUsUwz3Q3ThvEfB36WRDNDhSXnDZN//nQE2JnARv1Nd71s8M6M5p0O1AAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQM11PatfbwDvVSzdhoAgEQgDudLEix7z7DG5GCOG7JmbJOtdiLCUixsrETYAGkBDNB0sQyToRkBNu4UShLxI0gScq8i2D2TZCCh/Vlfg==
