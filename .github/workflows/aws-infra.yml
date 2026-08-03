@@ -52,7 +52,9 @@ jobs:
           aws-region: us-east-1
           role-session-name: gha-keeper-aws-infra
 
+      # Set repo variable AUTHENTIK_IC_ENABLED=true after OpenBao secret/data/pulumi/authentik exists.
       - name: Fetch Authentik tokens from OpenBao
+        if: ${{ vars.AUTHENTIK_IC_ENABLED == 'true' }}
         env:
           BAO_ADDR: https://keeper.goodmanners.services
           BAO_AUTH_MOUNT: jwt
