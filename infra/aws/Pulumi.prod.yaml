@@ -1,7 +1,9 @@
 config:
   aws:region: us-east-1
-  keeper-aws-infra:githubOrg: GoodMannersHosting
-  keeper-aws-infra:githubRepo: cloud-security-cluster
+  # Immutable OIDC sub: repo:ORG@ORG_ID/REPO@REPO_ID:ref:...
+  # https://docs.github.com/en/actions/reference/security/oidc#immutable-subject-claims
+  keeper-aws-infra:githubOrg: GoodMannersHosting@88983444
+  keeper-aws-infra:githubRepo: cloud-security-cluster@1166064097
   keeper-aws-infra:hostedZoneName: goodmanners.services
   # Uncomment if the account already has a GitHub OIDC provider:
   # keeper-aws-infra:githubOidcProviderArn: arn:aws:iam::ACCOUNT:oidc-provider/token.actions.githubusercontent.com

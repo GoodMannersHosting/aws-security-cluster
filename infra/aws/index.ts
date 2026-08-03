@@ -5,8 +5,9 @@ import { createRoute53Dnsweaver } from "./route53Dnsweaver";
 const config = new pulumi.Config();
 const awsConfig = new pulumi.Config("aws");
 
-const githubOrg = config.get("githubOrg") ?? "GoodMannersHosting";
-const githubRepo = config.get("githubRepo") ?? "cloud-security-cluster";
+const githubOrg = config.get("githubOrg") ?? "GoodMannersHosting@88983444";
+const githubRepo =
+  config.get("githubRepo") ?? "cloud-security-cluster@1166064097";
 const allowedRefs = config.getObject<string[]>("allowedRefs") ?? [
   "refs/heads/main",
 ];
