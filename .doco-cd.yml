@@ -40,6 +40,15 @@ env_files:
   - secrets.enc.env
 
 ---
+name: hcloud-dnsweaver
+working_dir: stacks/dnsweaver
+webhook_filter: ^refs/heads/main$
+compose_files:
+  - compose.yaml
+env_files:
+  - secrets.enc.env
+
+---
 name: hcloud-alloy
 working_dir: stacks/alloy
 webhook_filter: ^refs/heads/main$
