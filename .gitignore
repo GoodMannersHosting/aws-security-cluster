@@ -19,6 +19,7 @@ stacks/doco-cd/sops_age_key.txt
 # Plaintext counterparts of committed SOPS files (encrypt → secrets.enc.env then commit)
 stacks/**/*.env.plain
 stacks/**/secrets.env
+stacks/**/secrets.env.env
 stacks/**/.decrypted~*
 
 # Off-site backup credentials (S3 IAM user)
@@ -30,3 +31,6 @@ stacks/ops/aws/ca.srl
 
 # System Files
 .DS_Store
+
+# Git worktrees (local feature checkouts)
+.worktrees/
