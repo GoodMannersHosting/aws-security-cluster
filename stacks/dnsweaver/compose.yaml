@@ -1,0 +1,136 @@
+name: dnsweaver
+
+services:
+  # Scoped to the four endpoints dnsweaver needs: container inspect, the event
+  # stream, /info at startup and /_ping for connectivity.
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: dnsweaver-socket-proxy
+    restart: unless-stopped
+    networks:
+      - dockerapi
+    environment:
+      CONTAINERS: 1
+      EVENTS: 1
+      INFO: 1
+      PING: 1
+      POST: 0
+      AUTH: 0
+      BUILD: 0
+      COMMIT: 0
+      CONFIGS: 0
+      DISTRIBUTION: 0
+      EXEC: 0
+      IMAGES: 0
+      NETWORKS: 0
+      NODES: 0
+      PLUGINS: 0
+      SECRETS: 0
+      SERVICES: 0
+      SESSION: 0
+      SWARM: 0
+      SYSTEM: 0
+      TASKS: 0
+      VOLUMES: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    read_only: false
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /run
+
+  dnsweaver:
+    image: ghcr.io/maxfield-allison/dnsweaver:v2.7.1@sha256:9ba1d14f3a9f192eeda16df904f387ddd8634e56e2690f8deaa0b2438e23021f
+    container_name: dnsweaver
+    restart: unless-stopped
+    depends_on:
+      - socket-proxy
+      - route53-webhook
+    env_file:
+      - secrets.enc.env
+    environment:
+      DNSWEAVER_DOCKER_HOST: tcp://socket-proxy:2375
+      DNSWEAVER_DOCKER_MODE: standalone
+      # Traefik router rules cover every routed stack; dnsweaver.* labels let a
+      # single container override its own hostname, type or target.
+      DNSWEAVER_SOURCES: traefik,dnsweaver
+      DNSWEAVER_LOG_LEVEL: ${DNSWEAVER_LOG_LEVEL:-info}
+      # Logs the changes it would make without calling Route53. Leave on until
+      # the log matches the intended record set, then flip in .env.
+      DNSWEAVER_DRY_RUN: ${DNSWEAVER_DRY_RUN:-true}
+      # Ownership TXT records are what scope deletion to records dnsweaver
+      # created, so cleanup cannot touch hostnames added by hand.
+      DNSWEAVER_OWNERSHIP_TRACKING: "true"
+      DNSWEAVER_ADOPT_EXISTING: ${DNSWEAVER_ADOPT_EXISTING:-false}
+      DNSWEAVER_CLEANUP_ON_STOP: ${DNSWEAVER_CLEANUP_ON_STOP:-true}
+      DNSWEAVER_CLEANUP_ORPHANS: ${DNSWEAVER_CLEANUP_ORPHANS:-true}
+      DNSWEAVER_DEFAULT_TTL: ${DNSWEAVER_DEFAULT_TTL:-60}
+      DNSWEAVER_INSTANCES: route53
+      DNSWEAVER_ROUTE53_TYPE: webhook
+      DNSWEAVER_ROUTE53_URL: http://route53-webhook:8080
+      DNSWEAVER_ROUTE53_AUTH_HEADER: X-Webhook-Token
+      DNSWEAVER_ROUTE53_AUTH_TOKEN: ${DNSWEAVER_WEBHOOK_TOKEN:?set DNSWEAVER_WEBHOOK_TOKEN}
+      DNSWEAVER_ROUTE53_RECORD_TYPE: A
+      DNSWEAVER_ROUTE53_TARGET: ${DNSWEAVER_RECORD_TARGET:?set DNSWEAVER_RECORD_TARGET}
+      DNSWEAVER_ROUTE53_DOMAINS: ${DNSWEAVER_DOMAINS:?set DNSWEAVER_DOMAINS}
+      DNSWEAVER_ROUTE53_EXCLUDE_DOMAINS: ${DNSWEAVER_EXCLUDE_DOMAINS:-}
+    networks:
+      - dockerapi
+      - dns
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      # The entrypoint execs su-exec to drop to uid 1000 before starting.
+      - SETUID
+      - SETGID
+
+  route53-webhook:
+    image: ghcr.io/goodmannershosting/route53-dnsweaver-webhook:0.1.0@sha256:262811a9e52ebd657b65443379e2f30591cbb3847e650bdc9100f3661dc427b9
+    container_name: route53-dnsweaver-webhook
+    restart: unless-stopped
+    env_file:
+      - secrets.enc.env
+    environment:
+      ROUTE53_HOSTED_ZONE_ID: ${ROUTE53_HOSTED_ZONE_ID:?set ROUTE53_HOSTED_ZONE_ID}
+      ROUTE53_DEFAULT_TTL: ${DNSWEAVER_DEFAULT_TTL:-60}
+      WEBHOOK_AUTH_HEADER: X-Webhook-Token
+      WEBHOOK_AUTH_TOKEN: ${DNSWEAVER_WEBHOOK_TOKEN:?set DNSWEAVER_WEBHOOK_TOKEN}
+      LOG_LEVEL: ${WEBHOOK_LOG_LEVEL:-info}
+      # Static keys win over the shared files below when both are populated.
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_PROFILE: ${AWS_PROFILE:-}
+      AWS_SHARED_CREDENTIALS_FILE: /aws/credentials
+      AWS_CONFIG_FILE: /aws/config
+    volumes:
+      - ${DNSWEAVER_AWS_CREDS_DIR:-./aws}:/aws:ro
+    networks:
+      - dns
+    # Exceeds the webhook's own 35s shutdown budget so an in-flight Route53
+    # change finishes instead of being SIGKILLed at Docker's 10s default.
+    stop_grace_period: 40s
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # No healthcheck: the image is distroless/static, so there is no shell or
+    # HTTP client to probe GET /ping with. Read the JSON logs on stdout.
+
+networks:
+  # No egress: the proxy only ever talks to the local docker socket.
+  dockerapi:
+    driver: bridge
+    internal: true
+  # Egress needed here for the webhook to reach the Route53 API.
+  dns:
+    driver: bridge
