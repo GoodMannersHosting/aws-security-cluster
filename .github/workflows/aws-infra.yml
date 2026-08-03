@@ -52,6 +52,29 @@ jobs:
           aws-region: us-east-1
           role-session-name: gha-keeper-aws-infra
 
+      - name: Fetch Authentik tokens from OpenBao
+        env:
+          BAO_ADDR: https://keeper.goodmanners.services
+          BAO_AUTH_MOUNT: jwt
+          BAO_ROLE: github-actions-aws-infra
+          BAO_OIDC_AUDIENCE: https://github.com/GoodMannersHosting
+        run: |
+          set -euo pipefail
+          OIDC_JWT="$(curl -sS -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${BAO_OIDC_AUDIENCE}" | jq -r .value)"
+          BAO_TOKEN="$(curl -sS --request POST \
+            --data "{\"role\":\"${BAO_ROLE}\",\"jwt\":\"${OIDC_JWT}\"}" \
+            "${BAO_ADDR}/v1/auth/${BAO_AUTH_MOUNT}/login" | jq -r .auth.client_token)"
+          SECRET="$(curl -sS -H "X-Vault-Token: ${BAO_TOKEN}" \
+            "${BAO_ADDR}/v1/secret/data/pulumi/authentik")"
+          API_TOKEN="$(echo "${SECRET}" | jq -r .data.data.api_token)"
+          SCIM_TOKEN="$(echo "${SECRET}" | jq -r .data.data.scim_token)"
+          echo "::add-mask::${API_TOKEN}"
+          echo "::add-mask::${SCIM_TOKEN}"
+          echo "AUTHENTIK_TOKEN=${API_TOKEN}" >> "${GITHUB_ENV}"
+          echo "AUTHENTIK_SCIM_TOKEN=${SCIM_TOKEN}" >> "${GITHUB_ENV}"
+          echo "AUTHENTIK_URL=https://auth.goodmanners.services" >> "${GITHUB_ENV}"
+
       - name: Resolve Pulumi command
         id: cmd
         env:
