@@ -10,7 +10,11 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@pulumi/authentik": "file:sdks/authentik",
     "@pulumi/aws": "^6.81",
     "@pulumi/pulumi": "^3.147"
+  },
+  "allowScripts": {
+    "file:sdks/authentik": true
   }
 }
