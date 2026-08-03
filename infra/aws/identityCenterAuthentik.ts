@@ -1,10 +1,7 @@
 import * as aws from "@pulumi/aws";
 import * as authentik from "@pulumi/authentik";
 import * as pulumi from "@pulumi/pulumi";
-import {
-  awsScimUserMappingExpression,
-  resolveAssignmentsPending,
-} from "./identityCenterHelpers";
+import { awsScimUserMappingExpression } from "./identityCenterHelpers";
 
 export type IdentityCenterAuthentikArgs = {
   authentikUrl: string; // may only be used for docs/meta; provider auth is via AUTHENTIK_URL/TOKEN env
@@ -107,7 +104,7 @@ function createScimProvider(
   return new authentik.ProviderScim(`${APPLICATION_SLUG}-scim`, {
     name: "AWS IAM Identity Center SCIM",
     url: args.icScimUrl,
-    token: args.scimToken,
+    token: pulumi.secret(args.scimToken),
     compatibilityMode: "aws",
     propertyMappings: [
       defaultUserMapping.id,
@@ -124,11 +121,20 @@ function createApplication(
   return new authentik.Application(APPLICATION_SLUG, {
     name: "AWS IAM Identity Center",
     slug: APPLICATION_SLUG,
-    protocolProvider: samlProvider.providerSamlId.apply((id) => Number(id)),
+    protocolProvider: samlProvider.providerSamlId.apply(parseProviderId),
     backchannelProviders: scimProvider.providerScimId.apply((id) => [
-      Number(id),
+      parseProviderId(id),
     ]),
   });
+}
+
+/** Authentik provider ids are numeric strings; fail loudly rather than send NaN to the API. */
+function parseProviderId(id: string): number {
+  const parsed = Number(id);
+  if (Number.isNaN(parsed)) {
+    throw new Error(`Expected a numeric Authentik provider id, got "${id}"`);
+  }
+  return parsed;
 }
 
 // ---------- Permission sets ----------
