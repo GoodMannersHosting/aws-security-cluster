@@ -6,8 +6,7 @@ const config = new pulumi.Config();
 const awsConfig = new pulumi.Config("aws");
 
 const githubOrg = config.get("githubOrg") ?? "GoodMannersHosting";
-// Remote repo name used by doco-cd / bao-sync (local folder is hcloud-security-cluster).
-const githubRepo = config.get("githubRepo") ?? "aws-security-cluster";
+const githubRepo = config.get("githubRepo") ?? "cloud-security-cluster";
 const allowedRefs = config.getObject<string[]>("allowedRefs") ?? [
   "refs/heads/main",
 ];

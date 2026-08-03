@@ -1,7 +1,7 @@
 config:
   aws:region: us-east-1
   keeper-aws-infra:githubOrg: GoodMannersHosting
-  keeper-aws-infra:githubRepo: aws-security-cluster
+  keeper-aws-infra:githubRepo: cloud-security-cluster
   keeper-aws-infra:hostedZoneName: goodmanners.services
   # Uncomment if the account already has a GitHub OIDC provider:
   # keeper-aws-infra:githubOidcProviderArn: arn:aws:iam::ACCOUNT:oidc-provider/token.actions.githubusercontent.com
