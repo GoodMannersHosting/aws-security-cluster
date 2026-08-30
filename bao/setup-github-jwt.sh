@@ -15,7 +15,7 @@ load_config() {
   export GITHUB_OIDC_ISSUER="${GITHUB_OIDC_ISSUER:-https://token.actions.githubusercontent.com}"
   export BAO_OIDC_AUDIENCE="${BAO_OIDC_AUDIENCE:-https://github.com/GoodMannersHosting}"
   export GITHUB_JWT_AUDIENCE="${GITHUB_JWT_AUDIENCE:-${BAO_OIDC_AUDIENCE}}"
-  export GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-GoodMannersHosting/aws-security-cluster}"
+  export GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-GoodMannersHosting/cloud-security-cluster}"
   export GITHUB_REF="${GITHUB_REF:-refs/heads/main}"
   export BAO_CI_ROLE="${BAO_CI_ROLE:-github-actions-ci}"
   [[ -n "${BAO_TOKEN:-}" ]] || die "export BAO_TOKEN (root) before running"

@@ -6,8 +6,8 @@ set -euo pipefail
 
 STACKS="${STACKS:-/opt/stacks}"
 DOCO_ENV="${STACKS}/doco-cd/.env"
-REPO_URL="${REPO_URL:-https://github.com/GoodMannersHosting/aws-security-cluster.git}"
-REPO_FULL="${REPO_FULL:-GoodMannersHosting/aws-security-cluster}"
+REPO_URL="${REPO_URL:-https://github.com/GoodMannersHosting/cloud-security-cluster.git}"
+REPO_FULL="${REPO_FULL:-GoodMannersHosting/cloud-security-cluster}"
 CLONE_DIR="${CLONE_DIR:-/opt/hcloud-security-cluster}"
 TEMP_NAME="${TEMP_NAME:-doco-cd-bootstrap}"
 TEMP_PORT="${TEMP_PORT:-8088}"

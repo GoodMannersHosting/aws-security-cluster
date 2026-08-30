@@ -184,9 +184,9 @@ path "secret/metadata/pulumi/authentik" {
   "role_type": "jwt",
   "user_claim": "sub",
   "bound_audiences": ["https://github.com/GoodMannersHosting"],
-  "bound_subject": "repo:GoodMannersHosting/aws-security-cluster:ref:refs/heads/main",
+  "bound_subject": "repo:GoodMannersHosting/cloud-security-cluster:ref:refs/heads/main",
   "bound_claims": {
-    "repository": "GoodMannersHosting/aws-security-cluster",
+    "repository": "GoodMannersHosting/cloud-security-cluster",
     "ref": "refs/heads/main"
   },
   "bound_claims_type": "string",

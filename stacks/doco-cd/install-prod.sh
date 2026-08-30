@@ -5,7 +5,7 @@
 # Usage: curl -fsSL ... | bash   OR   sudo ./install-prod.sh
 set -euo pipefail
 
-REPO_URL="${REPO_URL:-https://github.com/GoodMannersHosting/aws-security-cluster.git}"
+REPO_URL="${REPO_URL:-https://github.com/GoodMannersHosting/cloud-security-cluster.git}"
 CLONE_DIR="${CLONE_DIR:-/opt/hcloud-security-cluster}"
 STACKS="${STACKS:-/opt/stacks}"
 DOCO_ENV="${STACKS}/doco-cd/.env"
@@ -165,7 +165,7 @@ cat <<EOF
 Doco-CD is running.
 
 1. DNS: ${HOST} -> this server
-2. GitHub webhook (GoodMannersHosting/aws-security-cluster):
+2. GitHub webhook (GoodMannersHosting/cloud-security-cluster):
    URL:     https://${HOST}/v1/webhook
    Secret:  ${SECRET}
    Content: application/json

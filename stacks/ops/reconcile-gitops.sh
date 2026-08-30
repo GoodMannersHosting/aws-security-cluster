@@ -2,8 +2,8 @@
 # Align keeper with GitOps: host clone, traefik bind paths, retire manual compose.
 set -euo pipefail
 
-REPO_URL="${REPO_URL:-https://github.com/GoodMannersHosting/aws-security-cluster.git}"
-REPO_FULL="${REPO_FULL:-GoodMannersHosting/aws-security-cluster}"
+REPO_URL="${REPO_URL:-https://github.com/GoodMannersHosting/cloud-security-cluster.git}"
+REPO_FULL="${REPO_FULL:-GoodMannersHosting/cloud-security-cluster}"
 CLONE_DIR="${CLONE_DIR:-/opt/hcloud-security-cluster}"
 DOCO_CLONE="${DOCO_CLONE:-/var/lib/docker/volumes/doco-cd_doco_cd_data/_data/github.com/${REPO_FULL}}"
 STACKS="${STACKS:-/opt/stacks}"

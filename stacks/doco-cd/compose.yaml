@@ -27,8 +27,8 @@ services:
       - traefik.enable=true
       # Static deploy labels so Doco-CD can skip redeploy when this stack is unchanged.
       - cd.doco.source.type=git
-      - cd.doco.source.name=GoodMannersHosting/aws-security-cluster
-      - cd.doco.source.url=https://github.com/GoodMannersHosting/aws-security-cluster.git
+      - cd.doco.source.name=GoodMannersHosting/cloud-security-cluster
+      - cd.doco.source.url=https://github.com/GoodMannersHosting/cloud-security-cluster.git
       - cd.doco.deployment.name=hcloud-doco-cd
       # GitOps self-deploy: avoid recreating this container on bind/secret drift
       - "cd.doco.deployment.recreate.ignore={bindMounts: [/var/run/docker.sock, /opt/stacks, /data], secrets: [sops_age_key]}"

@@ -80,7 +80,7 @@ Never commit plaintext **`stacks/*/.env`**, **`bao/config.env`**, or **`sops_age
 
 1. Run **`stacks/doco-cd/install-prod.sh`** (clone, Doco-CD, SOPS key, ops cron).
 2. Set **`GIT_ACCESS_TOKEN`** in encrypted doco-cd secrets if the repo is private.
-3. GitHub webhook on **`GoodMannersHosting/aws-security-cluster`**:
+3. GitHub webhook on **`GoodMannersHosting/cloud-security-cluster`**:
    - URL: `https://doco-cd.goodmanners.services/v1/webhook`
    - Secret: **`WEBHOOK_SECRET`** (in `stacks/doco-cd/secrets.enc.env`)
    - Content type: `application/json`

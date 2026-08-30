@@ -3,7 +3,7 @@
 set -euo pipefail
 
 CLONE_DIR="${CLONE_DIR:-/opt/hcloud-security-cluster}"
-REPO_SLUG="${REPO_SLUG:-GoodMannersHosting/aws-security-cluster}"
+REPO_SLUG="${REPO_SLUG:-GoodMannersHosting/cloud-security-cluster}"
 DOCO_CLONE="${DOCO_CLONE:-/var/lib/docker/volumes/doco-cd_doco_cd_data/_data/github.com/${REPO_SLUG}}"
 STACKS="${STACKS:-/opt/stacks}"
 fail=0
