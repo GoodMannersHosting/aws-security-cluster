@@ -13,14 +13,18 @@ config:
   keeper-aws-infra:githubOidcProviderArn: arn:aws:iam::417568418531:oidc-provider/token.actions.githubusercontent.com
 
   # Authentik + IAM Identity Center (see docs/superpowers/specs/2026-08-02-authentik-identity-center-design.md)
-  # One-time bootstrap: change IC identity source to external IdP; enable SCIM; put tokens in OpenBao.
-  # keeper-aws-infra:authentikUrl: https://auth.goodmanners.services
-  # keeper-aws-infra:icManagementRoleArn: arn:aws:iam::MGMT_ACCOUNT:role/keeper-ic-pulumi
-  # keeper-aws-infra:workloadAccountId: "WORKLOAD_ACCOUNT_ID"
+  # Org o-2j4dlyoocl: management 977656673179 (Daniel Manners), workload 417568418531 (GoodMannersHosting).
+  keeper-aws-infra:authentikUrl: https://auth.goodmanners.services
+  keeper-aws-infra:icManagementRoleArn: arn:aws:iam::977656673179:role/keeper-ic-pulumi
+  keeper-aws-infra:workloadAccountId: "417568418531"
+  keeper-aws-infra:icInstanceArn: arn:aws:sso:::instance/ssoins-722325f246f3860b
+  # --- Filled from the IC console after "Change identity source -> External IdP" ---
   # keeper-aws-infra:icAcsUrl: https://portal.sso.us-east-1.amazonaws.com/saml/assertion/EXAMPLE
   # keeper-aws-infra:icAudience: https://portal.sso.us-east-1.amazonaws.com/saml/assertion/EXAMPLE
+  # --- Filled from the IC console after "Enable automatic provisioning (SCIM)" ---
   # keeper-aws-infra:icScimUrl: https://scim.us-east-1.amazonaws.com/EXAMPLE/scim/v2/
-  # Optional: keeper-aws-infra:icInstanceArn: arn:aws:sso:::instance/ssoins-...
-  # Tokens: AUTHENTIK_TOKEN + AUTHENTIK_SCIM_TOKEN via env (from OpenBao in CI); never commit.
+  # Flip to true only after SCIM has synced aws-admins / aws-viewers into the Identity Store:
+  # keeper-aws-infra:icAssignmentsEnabled: "true"
+  # Tokens: AUTHENTIK_TOKEN + AUTHENTIK_SCIM_TOKEN via env (from OpenBao secret/data/pulumi/authentik in CI); never commit.
 secretsprovider: awskms://alias/pulumi-state?region=us-east-1
 encryptedkey: AQICAHj9/Os2L4O1FiUsUwz3Q3ThvEfB36WRDNDhSXnDZN//nQE2JnARv1Nd71s8M6M5p0O1AAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQM11PatfbwDvVSzdhoAgEQgDudLEix7z7DG5GCOG7JmbJOtdiLCUixsrETYAGkBDNB0sQyToRkBNu4UShLxI0gScq8i2D2TZCCh/Vlfg==

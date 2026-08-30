@@ -5,12 +5,17 @@ import { awsScimUserMappingExpression } from "./identityCenterHelpers";
 
 export type IdentityCenterAuthentikArgs = {
   authentikUrl: string; // may only be used for docs/meta; provider auth is via AUTHENTIK_URL/TOKEN env
-  scimToken: pulumi.Input<string>;
   icAcsUrl: string;
   icAudience: string;
-  icScimUrl: string;
   workloadAccountId: string;
   managementProvider: aws.Provider;
+  /**
+   * IC SCIM endpoint + bearer token. Both come from the console *after* SAML
+   * setup is accepted and automatic provisioning is enabled. Omit them for the
+   * first (SAML-only) apply; add them once known to attach the SCIM provider.
+   */
+  icScimUrl?: string;
+  scimToken?: pulumi.Input<string>;
   icInstanceArn?: string;
   adminGroupName?: string;
   viewerGroupName?: string;
@@ -23,6 +28,7 @@ export type IdentityCenterAuthentikResult = {
   adminPermissionSetArn: pulumi.Output<string>;
   viewerPermissionSetArn: pulumi.Output<string>;
   authentikApplicationSlug: string;
+  scimAttached: boolean;
 };
 
 const APPLICATION_SLUG = "aws-iam-identity-center";
@@ -31,6 +37,11 @@ const PERMISSION_SET_SESSION_DURATION = "PT8H";
 export function createIdentityCenterAuthentik(
   args: IdentityCenterAuthentikArgs,
 ): IdentityCenterAuthentikResult {
+  const scimAttached = Boolean(args.icScimUrl);
+  if (scimAttached && args.scimToken === undefined) {
+    throw new Error("icScimUrl is set but scimToken is missing");
+  }
+
   createAuthentikSide(args);
   const permissionSets = createPermissionSets(args);
   const assignmentsPending = createAssignments(args, permissionSets);
@@ -40,6 +51,7 @@ export function createIdentityCenterAuthentik(
     adminPermissionSetArn: permissionSets.adminPermissionSetArn,
     viewerPermissionSetArn: permissionSets.viewerPermissionSetArn,
     authentikApplicationSlug: APPLICATION_SLUG,
+    scimAttached,
   };
 }
 
@@ -53,7 +65,9 @@ function createAuthentikSide(args: IdentityCenterAuthentikArgs): void {
   new authentik.Group(viewerGroupName, { name: viewerGroupName });
 
   const samlProvider = createSamlProvider(args);
-  const scimProvider = createScimProvider(args);
+  const scimProvider = args.icScimUrl
+    ? createScimProvider({ ...args, icScimUrl: args.icScimUrl })
+    : undefined;
   createApplication(samlProvider, scimProvider);
 }
 
@@ -85,7 +99,7 @@ function createSamlProvider(
 }
 
 function createScimProvider(
-  args: IdentityCenterAuthentikArgs,
+  args: IdentityCenterAuthentikArgs & { icScimUrl: string },
 ): authentik.ProviderScim {
   const zzUserMapping = new authentik.PropertyMappingProviderScim(
     "zz-aws-scim-user",
@@ -100,6 +114,10 @@ function createScimProvider(
   const defaultGroupMapping = authentik.getPropertyMappingProviderScimOutput({
     managed: "goauthentik.io/providers/scim/group",
   });
+
+  if (args.scimToken === undefined) {
+    throw new Error("createScimProvider requires scimToken");
+  }
 
   return new authentik.ProviderScim(`${APPLICATION_SLUG}-scim`, {
     name: "AWS IAM Identity Center SCIM",
@@ -116,15 +134,15 @@ function createScimProvider(
 
 function createApplication(
   samlProvider: authentik.ProviderSaml,
-  scimProvider: authentik.ProviderScim,
+  scimProvider: authentik.ProviderScim | undefined,
 ): authentik.Application {
   return new authentik.Application(APPLICATION_SLUG, {
     name: "AWS IAM Identity Center",
     slug: APPLICATION_SLUG,
     protocolProvider: samlProvider.providerSamlId.apply(parseProviderId),
-    backchannelProviders: scimProvider.providerScimId.apply((id) => [
-      parseProviderId(id),
-    ]),
+    backchannelProviders: scimProvider
+      ? scimProvider.providerScimId.apply((id) => [parseProviderId(id)])
+      : [],
   });
 }
 

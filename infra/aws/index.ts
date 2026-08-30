@@ -45,23 +45,20 @@ let assignmentsPending: pulumi.Output<boolean> | undefined;
 let adminPermissionSetArn: pulumi.Output<string> | undefined;
 let viewerPermissionSetArn: pulumi.Output<string> | undefined;
 let authentikApplicationSlug: string | undefined;
+let scimAttached: boolean | undefined;
 
-if (
-  authentikUrl &&
-  icManagementRoleArn &&
-  workloadAccountId &&
-  icAcsUrl &&
-  icAudience &&
-  icScimUrl
-) {
+// SAML-only apply needs acs + audience; icScimUrl is added on a later apply once
+// automatic provisioning is enabled in the IC console.
+if (authentikUrl && icManagementRoleArn && workloadAccountId && icAcsUrl && icAudience) {
   const managementProvider = new aws.Provider("ic-management", {
     region: (awsConfig.get("region") ?? "us-east-1") as aws.Region,
     assumeRole: { roleArn: icManagementRoleArn },
   });
-  const scimToken =
-    process.env.AUTHENTIK_SCIM_TOKEN !== undefined
+  const scimToken = icScimUrl
+    ? process.env.AUTHENTIK_SCIM_TOKEN !== undefined
       ? pulumi.secret(process.env.AUTHENTIK_SCIM_TOKEN)
-      : config.requireSecret("icScimToken");
+      : config.requireSecret("icScimToken")
+    : undefined;
   const icResult = createIdentityCenterAuthentik({
     authentikUrl,
     scimToken,
@@ -77,6 +74,7 @@ if (
   adminPermissionSetArn = icResult.adminPermissionSetArn;
   viewerPermissionSetArn = icResult.viewerPermissionSetArn;
   authentikApplicationSlug = icResult.authentikApplicationSlug;
+  scimAttached = icResult.scimAttached;
 }
 
 export const awsRegion = awsConfig.get("region") ?? "us-east-1";
@@ -96,3 +94,4 @@ export const icAssignmentsPending = assignmentsPending;
 export const icAdminPermissionSetArn = adminPermissionSetArn;
 export const icViewerPermissionSetArn = viewerPermissionSetArn;
 export const icAuthentikApplicationSlug = authentikApplicationSlug;
+export const icScimAttached = scimAttached;
