@@ -18,9 +18,9 @@ config:
   keeper-aws-infra:icManagementRoleArn: arn:aws:iam::977656673179:role/keeper-ic-pulumi
   keeper-aws-infra:workloadAccountId: "417568418531"
   keeper-aws-infra:icInstanceArn: arn:aws:sso:::instance/ssoins-722325f246f3860b
-  # --- Filled from the IC console after "Change identity source -> External IdP" ---
-  # keeper-aws-infra:icAcsUrl: https://portal.sso.us-east-1.amazonaws.com/saml/assertion/EXAMPLE
-  # keeper-aws-infra:icAudience: https://portal.sso.us-east-1.amazonaws.com/saml/assertion/EXAMPLE
+  # --- From the IC console SP metadata (Change identity source -> External IdP) ---
+  keeper-aws-infra:icAcsUrl: https://us-east-1.signin.aws/platform/saml/acs/75732d656173742d312d71c0ccf5-7616-4c60-9c2b-6c2b9f6796fe
+  keeper-aws-infra:icAudience: https://us-east-1.signin.aws.amazon.com/platform/saml/d-9067963c52
   # --- Filled from the IC console after "Enable automatic provisioning (SCIM)" ---
   # keeper-aws-infra:icScimUrl: https://scim.us-east-1.amazonaws.com/EXAMPLE/scim/v2/
   # Flip to true only after SCIM has synced aws-admins / aws-viewers into the Identity Store:
