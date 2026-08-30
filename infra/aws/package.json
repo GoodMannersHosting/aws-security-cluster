@@ -1,12 +1,20 @@
 {
   "name": "keeper-aws-infra",
   "main": "index.ts",
+  "scripts": {
+    "test": "node --import tsx --test identityCenterHelpers.test.ts"
+  },
   "devDependencies": {
     "@types/node": "^20",
+    "tsx": "^4.19.0",
     "typescript": "^5"
   },
   "dependencies": {
+    "@pulumi/authentik": "file:sdks/authentik",
     "@pulumi/aws": "^6.81",
     "@pulumi/pulumi": "^3.147"
+  },
+  "allowScripts": {
+    "file:sdks/authentik": true
   }
 }

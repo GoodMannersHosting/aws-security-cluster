@@ -12,6 +12,8 @@ export type GithubOidcArgs = {
   allowedRefs: string[];
   /** If set, reuse an existing account OIDC provider instead of creating one. */
   existingProviderArn?: string;
+  /** Org management role Pulumi assumes for Identity Center APIs. */
+  icManagementRoleArn?: string;
 };
 
 export type GithubOidcResult = {
@@ -23,7 +25,7 @@ export type GithubOidcResult = {
 export function createGithubOidc(args: GithubOidcArgs): GithubOidcResult {
   const providerArn = resolveProviderArn(args.existingProviderArn);
   const role = createDeployRole(providerArn, args);
-  attachDeployPolicy(role);
+  attachDeployPolicy(role, args);
   return {
     providerArn,
     deployRoleArn: role.arn,
@@ -81,12 +83,12 @@ function createDeployRole(
   });
 }
 
-function attachDeployPolicy(role: aws.iam.Role): void {
+function attachDeployPolicy(role: aws.iam.Role, args: GithubOidcArgs): void {
   const policy = new aws.iam.Policy("github-actions-aws-infra", {
     name: "github-actions-keeper-aws-infra",
     // IAM policy descriptions are immutable; changing this forces replace.
     description: "Least privilege for Pulumi to manage keeper Route53 IAM + OIDC",
-    policy: deployPolicyDocument(),
+    policy: deployPolicyDocument(args.icManagementRoleArn),
     tags: { ManagedBy: "pulumi", Project: "keeper-aws-infra" },
   });
   new aws.iam.RolePolicyAttachment("github-actions-aws-infra", {
@@ -99,7 +101,7 @@ const PULUMI_STATE_BUCKET = "pulumi-state-2e089842";
 const PULUMI_STATE_KMS_KEY_ARN =
   "arn:aws:kms:us-east-1:417568418531:key/bfc0fa79-40b2-4b95-8880-8b937266af74";
 
-function deployPolicyDocument(): string {
+function deployPolicyDocument(icManagementRoleArn?: string): string {
   // Named resources this stack owns. Create* still needs the target ARN.
   const resources = [
     "arn:aws:iam::*:oidc-provider/token.actions.githubusercontent.com",
@@ -109,9 +111,7 @@ function deployPolicyDocument(): string {
     "arn:aws:iam::*:policy/github-actions-keeper-aws-infra",
     "arn:aws:iam::*:policy/keeper-dnsweaver-route53",
   ];
-  return JSON.stringify({
-    Version: "2012-10-17",
-    Statement: [
+  const statements: object[] = [
       {
         Sid: "CallerIdentity",
         Effect: "Allow",
@@ -215,6 +215,17 @@ function deployPolicyDocument(): string {
         ],
         Resource: [PULUMI_STATE_KMS_KEY_ARN],
       },
-    ],
+  ];
+  if (icManagementRoleArn) {
+    statements.push({
+      Sid: "AssumeIdentityCenterManagementRole",
+      Effect: "Allow",
+      Action: ["sts:AssumeRole"],
+      Resource: [icManagementRoleArn],
+    });
+  }
+  return JSON.stringify({
+    Version: "2012-10-17",
+    Statement: statements,
   });
 }
