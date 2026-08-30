@@ -103,6 +103,9 @@ function createSamlProvider(
     signingKp: signingKp.id,
     authorizationFlow: authorizationFlow.id,
     invalidationFlow: invalidationFlow.id,
+    // AWS IAM Identity Center's ACS only accepts the HTTP-POST binding for the
+    // SAML response; Authentik defaults to redirect, which AWS silently drops.
+    spBinding: "post",
   });
 }
 
