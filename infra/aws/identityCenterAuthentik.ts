@@ -95,6 +95,11 @@ function createSamlProvider(
     name: "authentik Self-signed Certificate",
   });
 
+  // NOTE: `default_name_id_policy` must also be set to
+  // `urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress` on this provider —
+  // AWS IAM Identity Center rejects the `unspecified` NameID format with HTTP
+  // 400. The goauthentik/authentik terraform provider (1.2.1) does not expose
+  // that field yet, so it is a manual post-apply step (see README bootstrap).
   return new authentik.ProviderSaml(APPLICATION_SLUG, {
     name: "AWS IAM Identity Center",
     acsUrl: args.icAcsUrl,
