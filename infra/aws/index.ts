@@ -27,6 +27,12 @@ const icAcsUrl = config.get("icAcsUrl");
 const icAudience = config.get("icAudience");
 const icScimUrl = config.get("icScimUrl");
 const icAssignmentsEnabled = config.getBoolean("icAssignmentsEnabled") ?? false;
+// Accounts the aws-admins / aws-viewers permission sets are assigned in.
+// Defaults to just the workload account; set to include the org management
+// account when SSO admin there should also come from Authentik.
+const icAssignmentAccountIds =
+  config.getObject<string[]>("icAssignmentAccountIds") ??
+  (workloadAccountId ? [workloadAccountId] : []);
 
 const oidc = createGithubOidc({
   githubOrg,
@@ -65,7 +71,7 @@ if (authentikUrl && icManagementRoleArn && workloadAccountId && icAcsUrl && icAu
     icAcsUrl,
     icAudience,
     icScimUrl,
-    workloadAccountId,
+    assignmentAccountIds: icAssignmentAccountIds,
     managementProvider,
     icInstanceArn: config.get("icInstanceArn"),
     assignmentsEnabled: icAssignmentsEnabled,

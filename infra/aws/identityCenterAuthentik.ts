@@ -7,7 +7,8 @@ export type IdentityCenterAuthentikArgs = {
   authentikUrl: string; // may only be used for docs/meta; provider auth is via AUTHENTIK_URL/TOKEN env
   icAcsUrl: string;
   icAudience: string;
-  workloadAccountId: string;
+  /** Accounts that both permission sets get assigned in. Must be non-empty. */
+  assignmentAccountIds: string[];
   managementProvider: aws.Provider;
   /**
    * IC SCIM endpoint + bearer token. Both come from the console *after* SAML
@@ -280,16 +281,18 @@ function createAccountAssignment(
     { provider: args.managementProvider },
   );
 
-  new aws.ssoadmin.AccountAssignment(
-    `${groupName}-assignment`,
-    {
-      instanceArn: permissionSets.instanceArn,
-      permissionSetArn,
-      principalId: group.groupId,
-      principalType: "GROUP",
-      targetId: args.workloadAccountId,
-      targetType: "AWS_ACCOUNT",
-    },
-    { provider: args.managementProvider },
-  );
+  for (const accountId of args.assignmentAccountIds) {
+    new aws.ssoadmin.AccountAssignment(
+      `${groupName}-assignment-${accountId}`,
+      {
+        instanceArn: permissionSets.instanceArn,
+        permissionSetArn,
+        principalId: group.groupId,
+        principalType: "GROUP",
+        targetId: accountId,
+        targetType: "AWS_ACCOUNT",
+      },
+      { provider: args.managementProvider },
+    );
+  }
 }

@@ -21,10 +21,14 @@ config:
   # --- From the IC console SP metadata (Change identity source -> External IdP) ---
   keeper-aws-infra:icAcsUrl: https://us-east-1.signin.aws/platform/saml/acs/75732d656173742d312d71c0ccf5-7616-4c60-9c2b-6c2b9f6796fe
   keeper-aws-infra:icAudience: https://us-east-1.signin.aws.amazon.com/platform/saml/d-9067963c52
-  # --- Filled from the IC console after "Enable automatic provisioning (SCIM)" ---
-  # keeper-aws-infra:icScimUrl: https://scim.us-east-1.amazonaws.com/EXAMPLE/scim/v2/
-  # Flip to true only after SCIM has synced aws-admins / aws-viewers into the Identity Store:
-  # keeper-aws-infra:icAssignmentsEnabled: "true"
+  # --- From the IC console after "Enable automatic provisioning (SCIM)" ---
+  keeper-aws-infra:icScimUrl: https://scim.us-east-1.api.aws/14c8b428-7061-70e5-b4da-00eea4b787fa/scim/v2
+  # Accounts aws-admins (AdministratorAccess) / aws-viewers (ReadOnlyAccess) are assigned in:
+  keeper-aws-infra:icAssignmentAccountIds:
+    - "417568418531"
+    - "977656673179"
+  # Set true only after SCIM has synced aws-admins / aws-viewers into the Identity Store:
+  keeper-aws-infra:icAssignmentsEnabled: "true"
   # Tokens: AUTHENTIK_TOKEN + AUTHENTIK_SCIM_TOKEN via env (from OpenBao secret/data/pulumi/authentik in CI); never commit.
 secretsprovider: awskms://alias/pulumi-state?region=us-east-1
 encryptedkey: AQICAHj9/Os2L4O1FiUsUwz3Q3ThvEfB36WRDNDhSXnDZN//nQE2JnARv1Nd71s8M6M5p0O1AAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQM11PatfbwDvVSzdhoAgEQgDudLEix7z7DG5GCOG7JmbJOtdiLCUixsrETYAGkBDNB0sQyToRkBNu4UShLxI0gScq8i2D2TZCCh/Vlfg==
