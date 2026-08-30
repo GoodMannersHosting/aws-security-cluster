@@ -118,7 +118,7 @@ services:
       - no-new-privileges:true
 
   worker:
-    image: ghcr.io/goauthentik/server:2026.5.2
+    image: ghcr.io/goauthentik/server:2026.8.0
     container_name: authentik-worker
     restart: unless-stopped
     command: worker
