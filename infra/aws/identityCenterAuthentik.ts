@@ -3,20 +3,30 @@ import * as authentik from "@pulumi/authentik";
 import * as pulumi from "@pulumi/pulumi";
 import { awsScimUserMappingExpression } from "./identityCenterHelpers";
 
+const APPLICATION_SLUG = "aws-iam-identity-center";
+const PERMISSION_SET_SESSION_DURATION = "PT8H";
+const DEFAULT_ADMIN_GROUP = "aws-admins";
+const DEFAULT_VIEWER_GROUP = "aws-viewers";
+
+/**
+ * IC SCIM endpoint + bearer token. Both come from the console *after* SAML setup
+ * is accepted and automatic provisioning is enabled. Omit for the first
+ * (SAML-only) apply; add later to attach the SCIM backchannel provider.
+ */
+export type ScimConfig = {
+  url: string;
+  token: pulumi.Input<string>;
+};
+
 export type IdentityCenterAuthentikArgs = {
-  authentikUrl: string; // may only be used for docs/meta; provider auth is via AUTHENTIK_URL/TOKEN env
   icAcsUrl: string;
   icAudience: string;
-  /** Accounts that both permission sets get assigned in. Must be non-empty. */
-  assignmentAccountIds: string[];
+  /** Provider that talks to the org management account. */
   managementProvider: aws.Provider;
-  /**
-   * IC SCIM endpoint + bearer token. Both come from the console *after* SAML
-   * setup is accepted and automatic provisioning is enabled. Omit them for the
-   * first (SAML-only) apply; add them once known to attach the SCIM provider.
-   */
-  icScimUrl?: string;
-  scimToken?: pulumi.Input<string>;
+  /** Accounts both permission sets get assigned in (when `assignmentsEnabled`). */
+  assignmentAccountIds: string[];
+  scim?: ScimConfig;
+  /** Explicit IC instance ARN; otherwise discovered via `getInstances`. */
   icInstanceArn?: string;
   adminGroupName?: string;
   viewerGroupName?: string;
@@ -32,36 +42,53 @@ export type IdentityCenterAuthentikResult = {
   scimAttached: boolean;
 };
 
-const APPLICATION_SLUG = "aws-iam-identity-center";
-const PERMISSION_SET_SESSION_DURATION = "PT8H";
-
 export function createIdentityCenterAuthentik(
   args: IdentityCenterAuthentikArgs,
 ): IdentityCenterAuthentikResult {
-  const scimAttached = Boolean(args.icScimUrl);
-  if (scimAttached && args.scimToken === undefined) {
-    throw new Error("icScimUrl is set but scimToken is missing");
+  const adminGroupName = args.adminGroupName ?? DEFAULT_ADMIN_GROUP;
+  const viewerGroupName = args.viewerGroupName ?? DEFAULT_VIEWER_GROUP;
+  const assignmentsEnabled = args.assignmentsEnabled ?? false;
+
+  if (assignmentsEnabled && args.assignmentAccountIds.length === 0) {
+    throw new Error(
+      "assignmentsEnabled is true but assignmentAccountIds is empty",
+    );
   }
 
-  createAuthentikSide(args);
-  const permissionSets = createPermissionSets(args);
-  const assignmentsPending = createAssignments(args, permissionSets);
+  createAuthentikSide(args, adminGroupName, viewerGroupName);
+
+  const permissionSets = createPermissionSets(args, adminGroupName, viewerGroupName);
+
+  if (assignmentsEnabled) {
+    for (const [groupName, permissionSetArn] of [
+      [adminGroupName, permissionSets.adminPermissionSetArn],
+      [viewerGroupName, permissionSets.viewerPermissionSetArn],
+    ] as const) {
+      createAccountAssignments(
+        groupName,
+        permissionSetArn,
+        permissionSets,
+        args,
+      );
+    }
+  }
 
   return {
-    assignmentsPending,
+    assignmentsPending: pulumi.output(!assignmentsEnabled),
     adminPermissionSetArn: permissionSets.adminPermissionSetArn,
     viewerPermissionSetArn: permissionSets.viewerPermissionSetArn,
     authentikApplicationSlug: APPLICATION_SLUG,
-    scimAttached,
+    scimAttached: args.scim !== undefined,
   };
 }
 
 // ---------- Authentik side ----------
 
-function createAuthentikSide(args: IdentityCenterAuthentikArgs): void {
-  const adminGroupName = args.adminGroupName ?? "aws-admins";
-  const viewerGroupName = args.viewerGroupName ?? "aws-viewers";
-
+function createAuthentikSide(
+  args: IdentityCenterAuthentikArgs,
+  adminGroupName: string,
+  viewerGroupName: string,
+): void {
   const adminGroup = new authentik.Group(adminGroupName, {
     name: adminGroupName,
   });
@@ -70,11 +97,8 @@ function createAuthentikSide(args: IdentityCenterAuthentikArgs): void {
   });
 
   const samlProvider = createSamlProvider(args);
-  const scimProvider = args.icScimUrl
-    ? createScimProvider({ ...args, icScimUrl: args.icScimUrl }, [
-        adminGroup,
-        viewerGroup,
-      ])
+  const scimProvider = args.scim
+    ? createScimProvider(args.scim, [adminGroup, viewerGroup])
     : undefined;
   createApplication(samlProvider, scimProvider);
 }
@@ -115,7 +139,7 @@ function createSamlProvider(
 }
 
 function createScimProvider(
-  args: IdentityCenterAuthentikArgs & { icScimUrl: string },
+  scim: ScimConfig,
   scopeGroups: authentik.Group[],
 ): authentik.ProviderScim {
   const zzUserMapping = new authentik.PropertyMappingProviderScim(
@@ -132,14 +156,10 @@ function createScimProvider(
     managed: "goauthentik.io/providers/scim/group",
   });
 
-  if (args.scimToken === undefined) {
-    throw new Error("createScimProvider requires scimToken");
-  }
-
   return new authentik.ProviderScim(`${APPLICATION_SLUG}-scim`, {
     name: "AWS IAM Identity Center SCIM",
-    url: args.icScimUrl,
-    token: pulumi.secret(args.scimToken),
+    url: scim.url,
+    token: pulumi.secret(scim.token),
     compatibilityMode: "aws",
     // Only sync the AWS groups and their members — never all of Authentik.
     // Keeps service accounts (empty email -> empty SCIM userName) out of scope.
@@ -187,6 +207,8 @@ type PermissionSetsResult = {
 
 function createPermissionSets(
   args: IdentityCenterAuthentikArgs,
+  adminGroupName: string,
+  viewerGroupName: string,
 ): PermissionSetsResult {
   const instances = aws.ssoadmin.getInstancesOutput({
     provider: args.managementProvider,
@@ -202,24 +224,21 @@ function createPermissionSets(
     return ids[0];
   });
 
-  const adminPermissionSetArn = createPermissionSet(
-    args.adminGroupName ?? "aws-admins",
-    instanceArn,
-    "arn:aws:iam::aws:policy/AdministratorAccess",
-    args.managementProvider,
-  );
-  const viewerPermissionSetArn = createPermissionSet(
-    args.viewerGroupName ?? "aws-viewers",
-    instanceArn,
-    "arn:aws:iam::aws:policy/ReadOnlyAccess",
-    args.managementProvider,
-  );
-
   return {
     instanceArn,
     identityStoreId,
-    adminPermissionSetArn,
-    viewerPermissionSetArn,
+    adminPermissionSetArn: createPermissionSet(
+      adminGroupName,
+      instanceArn,
+      "arn:aws:iam::aws:policy/AdministratorAccess",
+      args.managementProvider,
+    ),
+    viewerPermissionSetArn: createPermissionSet(
+      viewerGroupName,
+      instanceArn,
+      "arn:aws:iam::aws:policy/ReadOnlyAccess",
+      args.managementProvider,
+    ),
   };
 }
 
@@ -244,33 +263,8 @@ function createPermissionSet(
 
 // ---------- Assignments ----------
 
-function createAssignments(
-  args: IdentityCenterAuthentikArgs,
-  permissionSets: PermissionSetsResult,
-): pulumi.Output<boolean> {
-  const assignmentsEnabled = args.assignmentsEnabled ?? false;
-  const assignmentsPending = pulumi.output(!assignmentsEnabled);
-  if (!assignmentsEnabled) {
-    return assignmentsPending;
-  }
-
-  createAccountAssignment(
-    args.adminGroupName ?? "aws-admins",
-    permissionSets.adminPermissionSetArn,
-    permissionSets,
-    args,
-  );
-  createAccountAssignment(
-    args.viewerGroupName ?? "aws-viewers",
-    permissionSets.viewerPermissionSetArn,
-    permissionSets,
-    args,
-  );
-
-  return assignmentsPending;
-}
-
-function createAccountAssignment(
+/** One `GROUP -> permission set -> account` assignment per configured account. */
+function createAccountAssignments(
   groupName: string,
   permissionSetArn: pulumi.Output<string>,
   permissionSets: PermissionSetsResult,

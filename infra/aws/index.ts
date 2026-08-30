@@ -53,24 +53,35 @@ let viewerPermissionSetArn: pulumi.Output<string> | undefined;
 let authentikApplicationSlug: string | undefined;
 let scimAttached: boolean | undefined;
 
-// SAML-only apply needs acs + audience; icScimUrl is added on a later apply once
-// automatic provisioning is enabled in the IC console.
-if (authentikUrl && icManagementRoleArn && workloadAccountId && icAcsUrl && icAudience) {
+// SAML-only apply needs acs + audience; the SCIM endpoint + token are added on a
+// later apply once automatic provisioning is enabled in the IC console.
+if (
+  authentikUrl &&
+  icManagementRoleArn &&
+  workloadAccountId &&
+  icAcsUrl &&
+  icAudience
+) {
   const managementProvider = new aws.Provider("ic-management", {
     region: (awsConfig.get("region") ?? "us-east-1") as aws.Region,
     assumeRole: { roleArn: icManagementRoleArn },
   });
-  const scimToken = icScimUrl
-    ? process.env.AUTHENTIK_SCIM_TOKEN !== undefined
-      ? pulumi.secret(process.env.AUTHENTIK_SCIM_TOKEN)
-      : config.requireSecret("icScimToken")
+
+  // SCIM token prefers the CI env var; local runs fall back to a stack secret.
+  const scim = icScimUrl
+    ? {
+        url: icScimUrl,
+        token:
+          process.env.AUTHENTIK_SCIM_TOKEN !== undefined
+            ? pulumi.secret(process.env.AUTHENTIK_SCIM_TOKEN)
+            : config.requireSecret("icScimToken"),
+      }
     : undefined;
+
   const icResult = createIdentityCenterAuthentik({
-    authentikUrl,
-    scimToken,
     icAcsUrl,
     icAudience,
-    icScimUrl,
+    scim,
     assignmentAccountIds: icAssignmentAccountIds,
     managementProvider,
     icInstanceArn: config.get("icInstanceArn"),

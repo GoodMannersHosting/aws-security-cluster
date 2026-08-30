@@ -7,11 +7,3 @@ export function awsScimUserMappingExpression(): string {
     "}",
   ].join("\n");
 }
-
-/** True when Identity Store group ids are not both available yet. */
-export function resolveAssignmentsPending(
-  adminGroupId: string | undefined,
-  viewerGroupId: string | undefined,
-): boolean {
-  return !adminGroupId || !viewerGroupId;
-}
