@@ -61,12 +61,19 @@ function createAuthentikSide(args: IdentityCenterAuthentikArgs): void {
   const adminGroupName = args.adminGroupName ?? "aws-admins";
   const viewerGroupName = args.viewerGroupName ?? "aws-viewers";
 
-  new authentik.Group(adminGroupName, { name: adminGroupName });
-  new authentik.Group(viewerGroupName, { name: viewerGroupName });
+  const adminGroup = new authentik.Group(adminGroupName, {
+    name: adminGroupName,
+  });
+  const viewerGroup = new authentik.Group(viewerGroupName, {
+    name: viewerGroupName,
+  });
 
   const samlProvider = createSamlProvider(args);
   const scimProvider = args.icScimUrl
-    ? createScimProvider({ ...args, icScimUrl: args.icScimUrl })
+    ? createScimProvider({ ...args, icScimUrl: args.icScimUrl }, [
+        adminGroup,
+        viewerGroup,
+      ])
     : undefined;
   createApplication(samlProvider, scimProvider);
 }
@@ -100,6 +107,7 @@ function createSamlProvider(
 
 function createScimProvider(
   args: IdentityCenterAuthentikArgs & { icScimUrl: string },
+  scopeGroups: authentik.Group[],
 ): authentik.ProviderScim {
   const zzUserMapping = new authentik.PropertyMappingProviderScim(
     "zz-aws-scim-user",
@@ -124,6 +132,10 @@ function createScimProvider(
     url: args.icScimUrl,
     token: pulumi.secret(args.scimToken),
     compatibilityMode: "aws",
+    // Only sync the AWS groups and their members — never all of Authentik.
+    // Keeps service accounts (empty email -> empty SCIM userName) out of scope.
+    excludeUsersServiceAccount: true,
+    groupFilters: scopeGroups.map((g) => g.groupId),
     propertyMappings: [
       defaultUserMapping.id,
       zzUserMapping.propertyMappingProviderScimId,
